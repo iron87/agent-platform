@@ -1,0 +1,493 @@
+openapi: "3.1.0"
+info:
+  title: 2brain Agent API
+  version: "1.0.0"
+  description: |
+    External API for the 2brain AI Agent Platform.
+    All endpoints except GET /health require `X-API-Key` authentication.
+    The key is scoped to a single client tenant — it must match a record in `clients.api_key_hash`.
+
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: localhost
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    # ──────────────────────────────────────────────
+    # Shared
+    # ──────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+        detail:
+          type: object
+          description: Optional structured detail (e.g. validation errors)
+
+    # ──────────────────────────────────────────────
+    # Agent invocation — synchronous
+    # ──────────────────────────────────────────────
+    RunRequest:
+      type: object
+      required: [agent_id, input]
+      properties:
+        agent_id:
+          type: string
+          format: uuid
+          description: ID of the agent definition to invoke
+        input:
+          type: string
+          maxLength: 131072
+          description: User/system input text (max 32 768 tokens enforced server-side)
+        session_id:
+          type: string
+          maxLength: 128
+          description: |
+            Session identifier for conversational mode.
+            If supplied, prior turns in this session are injected as context.
+            Omit for stateless single-turn invocation.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Caller-supplied key-value pairs attached to the trace (not used by agent)
+
+    RunResponse:
+      type: object
+      required: [job_id, output, trace_id]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: Stable ID for this execution record
+        output:
+          type: string
+          description: Agent response text after policy processing
+        trace_id:
+          type: string
+          description: Langfuse trace ID for this execution
+        session_id:
+          type: string
+          description: Echo of the session_id used (if any)
+
+    # ──────────────────────────────────────────────
+    # Async batch jobs
+    # ──────────────────────────────────────────────
+    JobSubmitRequest:
+      type: object
+      required: [agent_id, input]
+      properties:
+        agent_id:
+          type: string
+          format: uuid
+        input:
+          type: string
+          maxLength: 131072
+        session_id:
+          type: string
+          maxLength: 128
+          description: Optional — enables conversation context in async jobs
+        metadata:
+          type: object
+          additionalProperties: true
+
+    JobSubmitResponse:
+      type: object
+      required: [job_id, status]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending]
+
+    JobStatus:
+      type: object
+      required: [job_id, status, created_at]
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, interrupted, completed, failed]
+        output:
+          type: string
+          description: Present when status = completed
+        error:
+          type: string
+          description: Present when status = failed
+        trace_id:
+          type: string
+          description: Langfuse trace ID (present once execution starts)
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        pending_approval_id:
+          type: string
+          format: uuid
+          description: Present when status = interrupted; the ID of the pending ApprovalRequest
+
+    # ──────────────────────────────────────────────
+    # Human-in-the-loop approvals
+    # ──────────────────────────────────────────────
+    ApprovalRequest:
+      type: object
+      required: [id, job_id, tool_name, proposed_args, status, timeout_at, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        job_id:
+          type: string
+          format: uuid
+        tool_name:
+          type: string
+          description: Name of the tool call awaiting approval
+        proposed_args:
+          type: object
+          additionalProperties: true
+          description: Arguments the agent intends to pass to the tool
+        context_summary:
+          type: string
+          description: Brief natural-language summary of the execution context
+        status:
+          type: string
+          enum: [pending, approved, rejected, timed_out]
+        timeout_at:
+          type: string
+          format: date-time
+        decision_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    ApprovalDecision:
+      type: object
+      required: [approved, reviewer_id]
+      properties:
+        approved:
+          type: boolean
+        reason:
+          type: string
+          description: Optional human note recorded in the trace
+        reviewer_id:
+          type: string
+          minLength: 1
+          description: Opaque reviewer identifier (email, username, system ID)
+
+    # ──────────────────────────────────────────────
+    # Health
+    # ──────────────────────────────────────────────
+    HealthResponse:
+      type: object
+      required: [status, dependencies]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded]
+        dependencies:
+          type: object
+          properties:
+            postgres:
+              type: string
+              enum: [ok, error]
+            redis:
+              type: string
+              enum: [ok, error]
+            qdrant:
+              type: string
+              enum: [ok, error]
+          additionalProperties:
+            type: string
+
+paths:
+  # ──────────────────────────────────────────────
+  # Health (unauthenticated)
+  # ──────────────────────────────────────────────
+  /health:
+    get:
+      summary: Platform health check
+      description: |
+        Returns 200 only when all critical dependencies (Postgres, Redis, Qdrant) are reachable.
+        Returns 503 with structured body if any dependency is unreachable.
+        This endpoint does NOT require authentication.
+      security: []
+      operationId: getHealth
+      tags: [ops]
+      responses:
+        "200":
+          description: All dependencies healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: One or more dependencies unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  # ──────────────────────────────────────────────
+  # Synchronous agent invocation
+  # ──────────────────────────────────────────────
+  /run:
+    post:
+      summary: Invoke agent synchronously
+      description: |
+        Executes the specified agent and waits for the result.
+        Optionally supply a `session_id` to use conversational memory from prior turns.
+        Returns the agent output and a Langfuse `trace_id`.
+        If the agent requires a HITL approval mid-execution, this endpoint returns 202
+        with `status = interrupted` and a `pending_approval_id`.
+      operationId: runAgent
+      tags: [agents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunRequest"
+      responses:
+        "200":
+          description: Agent completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResponse"
+        "202":
+          description: |
+            Execution paused awaiting human approval.
+            Poll GET /jobs/{job_id} and then POST /approvals/{approval_id}/decide.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatus"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: agent_id not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request body validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: LLM provider unavailable after fallback exhausted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ──────────────────────────────────────────────
+  # Async batch jobs
+  # ──────────────────────────────────────────────
+  /jobs:
+    post:
+      summary: Submit an async agent job
+      description: |
+        Enqueues an agent invocation for asynchronous processing.
+        Returns immediately with a `job_id` and `status = pending`.
+        Poll GET /jobs/{job_id} for completion.
+      operationId: submitJob
+      tags: [jobs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobSubmitRequest"
+      responses:
+        "202":
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobSubmitResponse"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: agent_id not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request body validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Job queue unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{job_id}:
+    get:
+      summary: Get job status and result
+      description: |
+        Returns the current status of an async job.
+        When `status = completed`, `output` is populated.
+        When `status = interrupted`, `pending_approval_id` is populated.
+        Returns 404 if the job belongs to a different tenant than the caller.
+      operationId: getJob
+      tags: [jobs]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatus"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Job not found (or belongs to different tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ──────────────────────────────────────────────
+  # Human-in-the-loop approvals
+  # ──────────────────────────────────────────────
+  /approvals/{approval_id}:
+    get:
+      summary: Get approval request details
+      description: Returns the full context of a pending approval request.
+      operationId: getApproval
+      tags: [approvals]
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Approval request details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Approval request not found or belongs to different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /approvals/{approval_id}/decide:
+    post:
+      summary: Submit an approval or rejection decision
+      description: |
+        Submits a human decision for a pending approval request.
+        If `approved = true`, the paused agent execution resumes.
+        If `approved = false`, the agent is notified of the rejection and the job is terminated gracefully.
+        Returns 409 if the request is no longer `pending` (already decided or timed out).
+      operationId: decideApproval
+      tags: [approvals]
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecision"
+      responses:
+        "200":
+          description: Decision recorded; job resumption triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Approval request not found or belongs to different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Approval request is no longer pending (already decided or timed out)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request body validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
