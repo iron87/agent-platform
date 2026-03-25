@@ -1,0 +1,29 @@
+# VCS and docker metadata
+.git/
+.dockerignore
+Dockerfile*
+
+# Python artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Runtime and test artifacts
+*.log*
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment files
+.env
+.env.*
+
+# Misc
+node_modules/
+.DS_Store
+Thumbs.db
