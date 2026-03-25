@@ -9,7 +9,7 @@
 
 - [X] T001 Create Python project metadata and dependency groups in pyproject.toml
 - [X] T002 Create developer command targets for bootstrap/test/run in Makefile
-- [ ] T003 [P] Create base package scaffolding for `agent/`, `api/`, and `worker/` with `__init__.py` files
+- [X] T003 [P] Create base package scaffolding for `agent/`, `api/`, and `worker/` with `__init__.py` files
 - [ ] T004 [P] Create `.env.example` with documented required environment variables in infra/.env.example
 - [ ] T005 [P] Create `infra/litellm/config.yaml.template` with aliases `default`, `fast`, `embedding`
 - [ ] T006 Create single-host compose stack with caddy, postgres, redis, qdrant, litellm, langfuse, clickhouse, minio, agent-api, agent-worker in infra/docker-compose.yml

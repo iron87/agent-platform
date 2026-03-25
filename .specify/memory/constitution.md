@@ -1,18 +1,11 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change  : (none) → 1.0.0  (initial ratification)
-Modified        : n/a — first creation
+Version change  : 1.0.0 → 1.1.0
+Modified        : VII. Extensibility, Governance
 Added sections  :
-  - I.   Architecture
-  - II.  Code Quality
-  - III. Testing Standards
-  - IV.  Observability Standards
-  - V.   Security
-  - VI.  LLM Interaction
-  - VII. Extensibility
-  - Governance
-Removed sections: n/a
+  - none
+Removed sections: none
 Templates reviewed:
   ✅  .specify/templates/plan-template.md
         Constitution Check gate references are dynamic ("[Gates determined
@@ -25,8 +18,6 @@ Templates reviewed:
   ✅  .specify/templates/constitution-template.md
         Source template only; not modified.
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): If the true governance ratification date differs
-    from 2026-03-13, update the Version line accordingly.
   - TODO(GOVERNANCE_APPROVAL): Define who has authority to ratify amendments
     (team lead, RFC process, etc.) once the team governance process is agreed.
 -->
@@ -198,6 +189,13 @@ using IaC tooling (Terraform, Pulumi, or Helm). Manual provisioning of any
 infrastructure resource is prohibited. IaC definitions live in the `infra/`
 directory and are subject to the same code-review process as application code.
 
+**README Is a Living Task Ledger**
+The repository root `README.md` MUST be updated every time a task in
+`specs/001-ai-agent-platform/tasks.md` is implemented or materially changed.
+Each update MUST include: (1) what capability was added/changed, (2) how to use
+it, and (3) how to test it. Pull requests that implement tasks without matching
+README updates are non-compliant.
+
 ## Governance
 
 This constitution supersedes all other documented or informal practices. It
@@ -225,4 +223,4 @@ confirming that the change complies with all applicable principles. Violations
 require explicit justification documented in the PR description and logged in
 the Complexity Tracking table of the relevant plan.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-13
+**Version**: 1.1.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-25

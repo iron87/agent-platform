@@ -27,5 +27,8 @@ Thumbs.db
 *.tmp
 *.swp
 
+# Test
+.test-*
+
 # Node defaults for mixed repos
 node_modules/
