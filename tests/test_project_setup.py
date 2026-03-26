@@ -263,3 +263,34 @@ def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
     assert "class QueueUnavailableError" in queue_module
     assert "Retry(" in queue_module
     assert "result_ttl=86400" in queue_module
+
+
+def test_phase_two_foundation_complete_t023_orchestrator_exists() -> None:
+    """Validate T023 orchestrator completes Phase 2 foundation layer."""
+    service_module = _read("agent/service.py")
+
+    # T023: Agent service orchestrator
+    assert "class ExecutionMode(str, Enum)" in service_module
+    assert "SYNC = \"sync\"" in service_module
+    assert "SESSION = \"session\"" in service_module
+    assert "ASYNC = \"async\"" in service_module
+
+    assert "class ExecutionRequest" in service_module
+    assert "client_id: str" in service_module
+    assert "agent_id: str" in service_module
+    assert "input: str" in service_module
+    assert "mode: ExecutionMode" in service_module
+    assert "session_id: str | None" in service_module
+
+    assert "class ExecutionResult" in service_module
+    assert "output: str" in service_module
+    assert "trace_id: str | None" in service_module
+    assert "job_id: str | None" in service_module
+    assert "execution_time_ms: int | None" in service_module
+
+    assert "class AgentService" in service_module
+    assert "async def execute" in service_module
+    assert "async def _execute_sync" in service_module
+    assert "async def _execute_session" in service_module
+    assert "async def _execute_async" in service_module
+    assert "def _get_graph" in service_module

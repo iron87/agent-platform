@@ -38,7 +38,7 @@
 - [X] T020 [P] Create per-client policy registry and hot-reload loop in agent/policy.py
 - [X] T021 Create Langfuse callback wiring with graceful fail-open behavior in agent/observability.py
 - [X] T022 Create rq queue factory and enqueue helper with retry/timeouts in worker/queue.py
-- [ ] T023 Create shared agent service orchestrator for sync/session/async modes in agent/service.py
+- [X] T023 Create shared agent service orchestrator for sync/session/async modes in agent/service.py
 
 **Checkpoint**: Foundation complete; user stories are implementable in priority order
 
