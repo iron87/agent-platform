@@ -24,9 +24,9 @@
 
 **⚠️ CRITICAL**: No user story implementation starts before this phase is complete
 
-- [ ] T009 Create central settings/config loader with strict env validation in api/config.py
-- [ ] T010 [P] Create structured logging setup (`structlog` JSON renderer) in api/logging.py
-- [ ] T011 Create PostgreSQL schema migrations for `clients`, `agent_definitions`, `jobs`, `approval_requests`, `client_policies` in infra/migrations/001_initial_schema.sql
+- [X] T009 Create central settings/config loader with strict env validation in api/config.py
+- [X] T010 [P] Create structured logging setup (`structlog` JSON renderer) in api/logging.py
+- [X] T011 Create PostgreSQL schema migrations for `clients`, `agent_definitions`, `jobs`, `approval_requests`, `client_policies` in infra/migrations/001_initial_schema.sql
 - [ ] T012 Create database session and repository primitives in api/db.py
 - [ ] T013 [P] Create API key auth dependency (`X-API-Key`) with tenant scoping in api/deps.py
 - [ ] T014 Create shared Pydantic API schemas for run/jobs/approvals/errors in api/models/

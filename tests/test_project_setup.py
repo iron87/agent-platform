@@ -141,3 +141,21 @@ def test_caddyfile_routes_traffic_to_agent_api_with_tls() -> None:
     assert "tls internal" in caddyfile
     assert "reverse_proxy agent-api:8000" in caddyfile
     assert "{$CADDY_HOST:localhost}" in caddyfile
+
+
+def test_phase_two_foundation_artifacts_exist() -> None:
+    config = _read("api/config.py")
+    logging_setup = _read("api/logging.py")
+    migration = _read("infra/migrations/001_initial_schema.sql")
+
+    assert "class Settings(BaseSettings)" in config
+    assert "def get_settings()" in config
+    assert "structlog.processors.JSONRenderer" in logging_setup
+    for table_name in [
+        "CREATE TABLE IF NOT EXISTS clients",
+        "CREATE TABLE IF NOT EXISTS agent_definitions",
+        "CREATE TABLE IF NOT EXISTS jobs",
+        "CREATE TABLE IF NOT EXISTS approval_requests",
+        "CREATE TABLE IF NOT EXISTS client_policies",
+    ]:
+        assert table_name in migration
