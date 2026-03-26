@@ -68,3 +68,76 @@ def test_ignore_files_have_critical_patterns() -> None:
 
     for expected in [".git/", "__pycache__/", "*.pyc", ".env", "*.log*"]:
         assert expected in dockerignore
+
+
+def test_env_example_contains_documented_required_keys() -> None:
+    env_example = _read("infra/.env.example")
+
+    required_keys = [
+        "ENV=",
+        "AGENT_API_KEY=",
+        "DATABASE_URL=",
+        "REDIS_URL=",
+        "QDRANT_URL=",
+        "LITELLM_BASE_URL=",
+        "LITELLM_MASTER_KEY=",
+        "LOCAL_LLM_API_BASE=",
+        "LOCAL_DEFAULT_MODEL=",
+        "LOCAL_FAST_MODEL=",
+        "LOCAL_EMBEDDING_MODEL=",
+        "LANGFUSE_PUBLIC_KEY=",
+        "LANGFUSE_SECRET_KEY=",
+        "CLICKHOUSE_PASSWORD=",
+        "JOB_TIMEOUT_SECONDS=",
+    ]
+
+    for key in required_keys:
+        assert key in env_example
+
+
+def test_litellm_template_defines_required_aliases() -> None:
+    template = _read("infra/litellm/config.yaml.template")
+
+    assert "model_name: default" in template
+    assert "model_name: fast" in template
+    assert "model_name: embedding" in template
+    assert "fallbacks:" in template
+    assert 'default: ["fast"]' in template
+    assert "${LOCAL_LLM_API_BASE}" in template
+    assert "${LOCAL_DEFAULT_MODEL}" in template
+
+
+def test_compose_stack_defines_required_phase_one_services() -> None:
+    compose = _read("infra/docker-compose.yml")
+
+    for service in [
+        "caddy:",
+        "postgres:",
+        "redis:",
+        "qdrant:",
+        "litellm:",
+        "langfuse:",
+        "clickhouse:",
+        "minio:",
+        "agent-api:",
+        "agent-worker:",
+    ]:
+        assert service in compose
+
+
+def test_bootstrap_script_contains_secret_startup_and_wait_logic() -> None:
+    bootstrap = _read("infra/bootstrap.sh")
+
+    assert bootstrap.startswith("#!/usr/bin/env bash")
+    assert "openssl rand -hex 16" in bootstrap
+    assert 'docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d' in bootstrap
+    assert "wait_for_http" in bootstrap
+    assert "Bootstrap complete" in bootstrap
+
+
+def test_caddyfile_routes_traffic_to_agent_api_with_tls() -> None:
+    caddyfile = _read("infra/caddy/Caddyfile")
+
+    assert "tls internal" in caddyfile
+    assert "reverse_proxy agent-api:8000" in caddyfile
+    assert "{$CADDY_HOST:localhost}" in caddyfile

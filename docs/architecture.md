@@ -1,0 +1,67 @@
+# 2brain Architecture (Phase 1)
+
+This diagram represents the current architecture implemented up to Phase 1 setup tasks.
+
+![2brain Architecture SVG](architecture.svg)
+
+```mermaid
+flowchart LR
+  Client[Client Systems]
+  Engineer[Agency Engineer]
+
+  Caddy[Caddy\nReverse Proxy + TLS]
+  API[agent-api\nFastAPI service placeholder]
+  Worker[agent-worker\nRQ worker placeholder]
+
+  Postgres[(PostgreSQL)]
+  Redis[(Redis)]
+  Qdrant[(Qdrant)]
+
+  LiteLLM[LiteLLM\nAlias routing\ndefault, fast, embedding]
+  LocalLLM[Local Model Server\nOllama / vLLM / LM Studio]
+
+  Langfuse[Langfuse]
+  ClickHouse[(ClickHouse)]
+  MinIO[(MinIO)]
+
+  Bootstrap[bootstrap.sh\nsecrets + startup + wait]
+  Env[.env + .env.example]
+  Config[litellm config template]
+
+  Engineer --> Bootstrap
+  Bootstrap --> Env
+  Bootstrap --> Caddy
+  Bootstrap --> API
+  Bootstrap --> Worker
+  Bootstrap --> Postgres
+  Bootstrap --> Redis
+  Bootstrap --> Qdrant
+  Bootstrap --> LiteLLM
+  Bootstrap --> Langfuse
+  Bootstrap --> ClickHouse
+  Bootstrap --> MinIO
+
+  Client --> Caddy --> API
+  API --> Postgres
+  API --> Redis
+  API --> Qdrant
+  API --> LiteLLM
+
+  Worker --> Redis
+  Worker --> Postgres
+  Worker --> Qdrant
+
+  LiteLLM --> LocalLLM
+  LiteLLM --> Langfuse
+  Langfuse --> ClickHouse
+  Langfuse --> MinIO
+  Config --> LiteLLM
+
+  classDef edge fill:#eef7ff,stroke:#4a7bd1,stroke-width:1px;
+  class Client,Engineer,API,Worker,Caddy,LiteLLM,Langfuse,Bootstrap,Env,Config,LocalLLM edge;
+```
+
+## Notes
+
+- `agent-api` and `agent-worker` are currently placeholders in Phase 1.
+- Full application/runtime behavior is implemented in later phases.

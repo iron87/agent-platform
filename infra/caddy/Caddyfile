@@ -1,0 +1,16 @@
+{
+	email {$CADDY_EMAIL}
+}
+
+{$CADDY_HOST:localhost} {
+	tls internal
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+	}
+
+	reverse_proxy agent-api:8000
+}

@@ -10,11 +10,11 @@
 - [X] T001 Create Python project metadata and dependency groups in pyproject.toml
 - [X] T002 Create developer command targets for bootstrap/test/run in Makefile
 - [X] T003 [P] Create base package scaffolding for `agent/`, `api/`, and `worker/` with `__init__.py` files
-- [ ] T004 [P] Create `.env.example` with documented required environment variables in infra/.env.example
-- [ ] T005 [P] Create `infra/litellm/config.yaml.template` with aliases `default`, `fast`, `embedding`
-- [ ] T006 Create single-host compose stack with caddy, postgres, redis, qdrant, litellm, langfuse, clickhouse, minio, agent-api, agent-worker in infra/docker-compose.yml
-- [ ] T007 Create bootstrap script for secret generation + startup + health wait in infra/bootstrap.sh
-- [ ] T008 [P] Create Caddy reverse proxy and TLS config in infra/caddy/Caddyfile
+- [X] T004 [P] Create `.env.example` with documented required environment variables in infra/.env.example
+- [X] T005 [P] Create `infra/litellm/config.yaml.template` with aliases `default`, `fast`, `embedding`
+- [X] T006 Create single-host compose stack with caddy, postgres, redis, qdrant, litellm, langfuse, clickhouse, minio, agent-api, agent-worker in infra/docker-compose.yml
+- [X] T007 Create bootstrap script for secret generation + startup + health wait in infra/bootstrap.sh
+- [X] T008 [P] Create Caddy reverse proxy and TLS config in infra/caddy/Caddyfile
 
 ---
 

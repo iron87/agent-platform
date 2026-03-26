@@ -1,0 +1,36 @@
+model_list:
+	- model_name: default
+		litellm_params:
+			# Local OpenAI-compatible model (Ollama/vLLM/LM Studio)
+			model: ${LOCAL_DEFAULT_MODEL}
+			api_base: ${LOCAL_LLM_API_BASE}
+			api_key: ${LOCAL_LLM_API_KEY}
+			max_budget: ${LITELLM_BUDGET_DEFAULT}
+			budget_duration: ${LITELLM_BUDGET_DURATION}
+
+	- model_name: fast
+		litellm_params:
+			# Lower-latency local model
+			model: ${LOCAL_FAST_MODEL}
+			api_base: ${LOCAL_LLM_API_BASE}
+			api_key: ${LOCAL_LLM_API_KEY}
+			max_budget: ${LITELLM_BUDGET_FAST}
+			budget_duration: ${LITELLM_BUDGET_DURATION}
+
+	- model_name: embedding
+		litellm_params:
+			model: ${LOCAL_EMBEDDING_MODEL}
+			api_base: ${LOCAL_EMBEDDING_API_BASE}
+			api_key: ${LOCAL_EMBEDDING_API_KEY}
+			max_budget: ${LITELLM_BUDGET_EMBEDDING}
+			budget_duration: ${LITELLM_BUDGET_DURATION}
+
+litellm_settings:
+	num_retries: 2
+	request_timeout: 30
+	fallbacks:
+		- default: ["fast"]
+	callbacks: ["langfuse_otel"]
+
+general_settings:
+	master_key: os.environ/LITELLM_MASTER_KEY
