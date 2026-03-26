@@ -27,10 +27,10 @@
 - [X] T009 Create central settings/config loader with strict env validation in api/config.py
 - [X] T010 [P] Create structured logging setup (`structlog` JSON renderer) in api/logging.py
 - [X] T011 Create PostgreSQL schema migrations for `clients`, `agent_definitions`, `jobs`, `approval_requests`, `client_policies` in infra/migrations/001_initial_schema.sql
-- [ ] T012 Create database session and repository primitives in api/db.py
-- [ ] T013 [P] Create API key auth dependency (`X-API-Key`) with tenant scoping in api/deps.py
-- [ ] T014 Create shared Pydantic API schemas for run/jobs/approvals/errors in api/models/
-- [ ] T015 Create base FastAPI app factory with router registration and startup checks in api/main.py
+- [X] T012 Create database session and repository primitives in api/db.py
+- [X] T013 [P] Create API key auth dependency (`X-API-Key`) with tenant scoping in api/deps.py
+- [X] T014 Create shared Pydantic API schemas for run/jobs/approvals/errors in api/models/
+- [X] T015 Create base FastAPI app factory with router registration and startup checks in api/main.py
 - [ ] T016 Create LangGraph shared state and graph registry loader in agent/graphs/state.py and agent/graphs/__init__.py
 - [ ] T017 [P] Create LiteLLM client wrapper using alias-only model calls in agent/llm.py
 - [ ] T018 [P] Create Redis session store abstraction with namespaced key patterns in agent/session_store.py

@@ -20,6 +20,7 @@ def test_pyproject_has_required_metadata_and_dependency_groups() -> None:
 
     deps = set(project["dependencies"])
     assert any(dep.startswith("fastapi") for dep in deps)
+    assert any(dep.startswith("bcrypt") for dep in deps)
     assert any(dep.startswith("pydantic") for dep in deps)
     assert any(dep.startswith("langgraph") for dep in deps)
 
@@ -145,12 +146,28 @@ def test_caddyfile_routes_traffic_to_agent_api_with_tls() -> None:
 
 def test_phase_two_foundation_artifacts_exist() -> None:
     config = _read("api/config.py")
+    db = _read("api/db.py")
+    deps = _read("api/deps.py")
     logging_setup = _read("api/logging.py")
+    main = _read("api/main.py")
+    run_models = _read("api/models/run.py")
+    job_models = _read("api/models/jobs.py")
+    approval_models = _read("api/models/approvals.py")
+    error_models = _read("api/models/errors.py")
     migration = _read("infra/migrations/001_initial_schema.sql")
 
     assert "class Settings(BaseSettings)" in config
     assert "def get_settings()" in config
+    assert "class ClientsRepository" in db
+    assert "async def get_db_session()" in db
+    assert "class TenantContext" in deps
+    assert "async def get_current_tenant" in deps
     assert "structlog.processors.JSONRenderer" in logging_setup
+    assert "def create_app(" in main
+    assert "RunRequest" in run_models
+    assert "JobStatus" in job_models
+    assert "ApprovalDecision" in approval_models
+    assert "class ErrorResponse" in error_models
     for table_name in [
         "CREATE TABLE IF NOT EXISTS clients",
         "CREATE TABLE IF NOT EXISTS agent_definitions",
