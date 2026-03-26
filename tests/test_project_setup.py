@@ -176,3 +176,43 @@ def test_phase_two_foundation_artifacts_exist() -> None:
         "CREATE TABLE IF NOT EXISTS client_policies",
     ]:
         assert table_name in migration
+
+
+def test_phase_two_foundation_layer_2_artifacts_exist() -> None:
+    """Verify T016, T017, T018 artifacts are created with expected signatures."""
+    state_module = _read("agent/graphs/state.py")
+    graphs_init = _read("agent/graphs/__init__.py")
+    llm_module = _read("agent/llm.py")
+    session_store = _read("agent/session_store.py")
+
+    # T016: AgentState TypedDict and graph registry
+    assert "class AgentState(TypedDict)" in state_module
+    assert "client_id: str" in state_module
+    assert "messages: Annotated[list, add_messages]" in state_module
+    assert "pending_tool: str | None" in state_module
+
+    # T016: Graph registry and checkpointer
+    assert "async def create_graph_checkpointer" in graphs_init
+    assert "def register_graph" in graphs_init
+    assert "def get_graph_builder" in graphs_init
+    assert "def get_cached_graph" in graphs_init
+    assert "_GRAPHS: dict[str, type[StateGraph]]" in graphs_init
+
+    # T017: LiteLLM client wrapper
+    assert "class LiteLLMClient" in llm_module
+    assert "VALID_ALIASES = " in llm_module
+    assert '"default", "fast", "embedding"' in llm_module
+    assert "async def create_completion" in llm_module
+    assert "async def create_embedding" in llm_module
+    assert "class LiteLLMClientError" in llm_module
+
+    # T018: Redis session store
+    assert "class SessionTurn" in session_store
+    assert "class SessionMetadata" in session_store
+    assert "class RedisSessionStore" in session_store
+    assert "async def create_session" in session_store
+    assert "async def append_turn" in session_store
+    assert "async def load_turns" in session_store
+    assert "def _turns_key" in session_store
+    assert "def _meta_key" in session_store
+    assert "{client_id}:session:{session_id}:turns" in session_store

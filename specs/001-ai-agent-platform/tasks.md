@@ -31,9 +31,9 @@
 - [X] T013 [P] Create API key auth dependency (`X-API-Key`) with tenant scoping in api/deps.py
 - [X] T014 Create shared Pydantic API schemas for run/jobs/approvals/errors in api/models/
 - [X] T015 Create base FastAPI app factory with router registration and startup checks in api/main.py
-- [ ] T016 Create LangGraph shared state and graph registry loader in agent/graphs/state.py and agent/graphs/__init__.py
-- [ ] T017 [P] Create LiteLLM client wrapper using alias-only model calls in agent/llm.py
-- [ ] T018 [P] Create Redis session store abstraction with namespaced key patterns in agent/session_store.py
+- [X] T016 Create LangGraph shared state and graph registry loader in agent/graphs/state.py and agent/graphs/__init__.py
+- [X] T017 [P] Create LiteLLM client wrapper using alias-only model calls in agent/llm.py
+- [X] T018 [P] Create Redis session store abstraction with namespaced key patterns in agent/session_store.py
 - [ ] T019 [P] Create semantic memory abstraction + Mem0/Qdrant implementation in agent/memory.py
 - [ ] T020 [P] Create per-client policy registry and hot-reload loop in agent/policy.py
 - [ ] T021 Create Langfuse callback wiring with graceful fail-open behavior in agent/observability.py
