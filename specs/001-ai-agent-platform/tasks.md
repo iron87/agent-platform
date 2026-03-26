@@ -34,10 +34,10 @@
 - [X] T016 Create LangGraph shared state and graph registry loader in agent/graphs/state.py and agent/graphs/__init__.py
 - [X] T017 [P] Create LiteLLM client wrapper using alias-only model calls in agent/llm.py
 - [X] T018 [P] Create Redis session store abstraction with namespaced key patterns in agent/session_store.py
-- [ ] T019 [P] Create semantic memory abstraction + Mem0/Qdrant implementation in agent/memory.py
-- [ ] T020 [P] Create per-client policy registry and hot-reload loop in agent/policy.py
-- [ ] T021 Create Langfuse callback wiring with graceful fail-open behavior in agent/observability.py
-- [ ] T022 Create rq queue factory and enqueue helper with retry/timeouts in worker/queue.py
+- [X] T019 [P] Create semantic memory abstraction + Mem0/Qdrant implementation in agent/memory.py
+- [X] T020 [P] Create per-client policy registry and hot-reload loop in agent/policy.py
+- [X] T021 Create Langfuse callback wiring with graceful fail-open behavior in agent/observability.py
+- [X] T022 Create rq queue factory and enqueue helper with retry/timeouts in worker/queue.py
 - [ ] T023 Create shared agent service orchestrator for sync/session/async modes in agent/service.py
 
 **Checkpoint**: Foundation complete; user stories are implementable in priority order

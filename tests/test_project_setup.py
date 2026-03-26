@@ -216,3 +216,50 @@ def test_phase_two_foundation_layer_2_artifacts_exist() -> None:
     assert "def _turns_key" in session_store
     assert "def _meta_key" in session_store
     assert "{client_id}:session:{session_id}:turns" in session_store
+
+
+def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
+    """Verify T019, T020, T021, T022 artifacts are created with expected signatures."""
+    memory_module = _read("agent/memory.py")
+    policy_module = _read("agent/policy.py")
+    observability_module = _read("agent/observability.py")
+    queue_module = _read("worker/queue.py")
+
+    # T019: Semantic memory abstraction
+    assert "class MemoryScope" in memory_module
+    assert "class MemoryRecord" in memory_module
+    assert "class SemanticMemoryStore(Protocol)" in memory_module
+    assert "class Mem0MemoryStore" in memory_module
+    assert "async def upsert_fact" in memory_module
+    assert "async def search" in memory_module
+    assert "async def delete" in memory_module
+    assert "{client_id}_memory" in memory_module
+
+    # T020: Policy registry with hot-reload
+    assert "def initialize_policies" in policy_module
+    assert "def start_hot_reload_loop" in policy_module
+    assert "def get_rails" in policy_module
+    assert "async def apply_policy" in policy_module
+    assert "_registry: dict" in policy_module
+    assert "_registry_lock = threading.Lock()" in policy_module
+    assert "interval_seconds: int = 20" in policy_module
+
+    # T021: Langfuse observability
+    assert "def create_langfuse_handler" in observability_module
+    assert "def inject_trace_metadata" in observability_module
+    assert "def build_execution_callbacks" in observability_module
+    assert "def extract_trace_id" in observability_module
+    assert "class ExecutionTraceContext" in observability_module
+    assert "async def __aenter__" in observability_module
+    assert "async def __aexit__" in observability_module
+    assert "fail-open" in observability_module or "fail_open" in observability_module
+
+    # T022: rq Queue factory
+    assert "def create_queue" in queue_module
+    assert "def enqueue_job" in queue_module
+    assert "def get_job_status" in queue_module
+    assert "def cancel_job" in queue_module
+    assert "class JobCallbackBridge" in queue_module
+    assert "class QueueUnavailableError" in queue_module
+    assert "Retry(" in queue_module
+    assert "result_ttl=86400" in queue_module
