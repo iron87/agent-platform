@@ -15,14 +15,15 @@ Provides three execution modes:
   3. Async (ExecutionMode.ASYNC): enqueues to job queue, returns job_id for polling
 """
 
-import logging
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class ExecutionMode(str, Enum):
@@ -214,21 +215,25 @@ class AgentService:
         from datetime import datetime, timezone
 
         start_time = datetime.now(timezone.utc)
+        run_id = str(uuid4())
 
         # Load agent definition
         agent_def = await self.agent_repo.get_by_id(request.agent_id)
-        if not agent_def:
-            raise ValueError(f"Agent not found: {request.agent_id}")
 
         # Select graph
         graph = self._get_graph(agent_def["graph_type"])
         if graph is None:
-            raise ValueError(f"Graph type not registered: {agent_def['graph_type']}")
+            return await self._execute_sync_llm_fallback(
+                request=request,
+                agent_def=agent_def,
+                run_id=run_id,
+                start_time=start_time,
+            )
 
         # Prepare execution state
         state = {
             "client_id": request.client_id,
-            "job_id": request.agent_id,  # Use agent_id as pseudo-job in sync mode
+            "job_id": run_id,
             "session_id": None,
             "input": request.input,
             "messages": [],
@@ -260,7 +265,7 @@ class AgentService:
                 self.settings,
                 client_id=request.client_id,
                 agent_id=request.agent_id,
-                job_id=str(request.agent_id),
+                job_id=run_id,
             ) as trace_ctx:
                 result = await graph.ainvoke(state, config=trace_ctx.config)
                 trace_id = trace_ctx.trace_id
@@ -293,8 +298,64 @@ class AgentService:
         return ExecutionResult(
             output=output,
             trace_id=trace_id,
+            job_id=run_id,
             execution_time_ms=execution_time_ms,
         )
+
+    async def _execute_sync_llm_fallback(
+        self,
+        request: ExecutionRequest,
+        agent_def: dict[str, Any],
+        run_id: str,
+        start_time: datetime,
+    ) -> ExecutionResult:
+        """Run synchronous execution via LiteLLM when graph is unavailable.
+
+        This keeps US2 operational before graph implementations are available.
+        """
+        from agent.observability import ExecutionTraceContext
+
+        system_prompt = self._load_prompt_text(agent_def.get("prompt_file"))
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": request.input})
+
+        model_alias = str(agent_def.get("model_alias") or "default")
+
+        async with ExecutionTraceContext(
+            self.settings,
+            client_id=request.client_id,
+            agent_id=request.agent_id,
+            job_id=run_id,
+        ) as trace_ctx:
+            completion = await self.llm_client.create_completion(
+                model=model_alias,
+                messages=messages,
+            )
+            trace_id = trace_ctx.trace_id
+
+        output = completion.choices[0].message.content or ""
+        end_time = datetime.now(timezone.utc)
+        execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+
+        return ExecutionResult(
+            output=output,
+            trace_id=trace_id,
+            job_id=run_id,
+            execution_time_ms=execution_time_ms,
+        )
+
+    def _load_prompt_text(self, prompt_file: str | None) -> str:
+        if not prompt_file:
+            return ""
+        path = Path(prompt_file)
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        if not path.exists():
+            logger.warning("prompt_file_not_found", prompt_file=str(path))
+            return ""
+        return path.read_text(encoding="utf-8")
 
     async def _execute_session(self, request: ExecutionRequest) -> ExecutionResult:
         """Execute in session mode (preserves turn history across invocations).

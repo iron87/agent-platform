@@ -6,11 +6,11 @@ Provides:
 - Checkpointer setup: AsyncPostgresSaver for HITL durability (deferred import)
 """
 
-import logging
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 from langgraph.graph import StateGraph
+import structlog
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 # Placeholder imports for future graph implementations

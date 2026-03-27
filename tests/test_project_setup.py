@@ -294,3 +294,40 @@ def test_phase_two_foundation_complete_t023_orchestrator_exists() -> None:
     assert "async def _execute_session" in service_module
     assert "async def _execute_async" in service_module
     assert "def _get_graph" in service_module
+
+
+def test_user_story_two_sync_invoke_artifacts_exist() -> None:
+    """Validate US2 (T031-T037) sync invocation artifacts are implemented."""
+    run_models = _read("api/models/run.py")
+    agents_route = _read("api/routes/agents.py")
+    agent_repo = _read("agent/repositories/agents.py")
+    service_module = _read("agent/service.py")
+    main_module = _read("api/main.py")
+
+    # T031: sync request/response schemas
+    assert "class RunRequest" in run_models
+    assert "class RunResponse" in run_models
+    assert "agent_id: UUID" in run_models
+    assert "input: str = Field(min_length=1, max_length=131072)" in run_models
+    assert "trace_id: str | None" in run_models
+
+    # T032 + T036: run route + auth dependency
+    assert "@router.post(\"/run\"" in agents_route
+    assert "Depends(get_current_tenant)" in agents_route
+    assert "HTTP_404_NOT_FOUND" in agents_route
+    assert "HTTP_503_SERVICE_UNAVAILABLE" in agents_route
+
+    # T033: repository lookup + not-found behavior
+    assert "class AgentNotFoundError" in agent_repo
+    assert "class AgentsRepository" in agent_repo
+    assert "async def get_by_id" in agent_repo
+    assert "raise AgentNotFoundError" in agent_repo
+
+    # T034 + T037: sync execution + tenant namespace context
+    assert "async def _execute_sync" in service_module
+    assert "_execute_sync_llm_fallback" in service_module
+    assert '"client_id": request.client_id' in service_module
+    assert "job_id=run_id" in service_module
+
+    # T035: route registration
+    assert "app.include_router(agents_router, prefix=runtime_settings.API_PREFIX)" in main_module

@@ -11,12 +11,12 @@ The LiteLLM proxy handles provider routing and automatic fallback, making the
 agent code cloud-agnostic.
 """
 
-import logging
 from typing import Any
 
 from openai import AsyncOpenAI
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Valid aliases that agents are permitted to use
 VALID_ALIASES = {"default", "fast", "embedding"}

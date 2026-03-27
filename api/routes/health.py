@@ -13,6 +13,16 @@ from fastapi.responses import JSONResponse
 router = APIRouter(tags=["health"])
 
 
+@router.get("/live", include_in_schema=True)
+async def live() -> JSONResponse:
+    """Liveness probe for container/runtime health.
+
+    This endpoint intentionally does not check external dependencies.
+    It returns 200 as long as the API process can serve requests.
+    """
+    return JSONResponse(content={"status": "alive"}, status_code=200)
+
+
 async def _probe_postgres(database_url: str) -> dict[str, Any]:
     start = time.monotonic()
     try:

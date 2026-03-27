@@ -8,16 +8,16 @@ Provides:
 """
 
 import hashlib
-import logging
 import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+import structlog
 
 if TYPE_CHECKING:
     from nemoguardrails import LLMRails
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Global policy registry with lock
 _registry: dict[str, Any] = {}

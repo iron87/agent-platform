@@ -65,6 +65,11 @@ PY
 	fi
 }
 
+get_env_value() {
+	local key="$1"
+	grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d'=' -f2-
+}
+
 ensure_env_file() {
 	if [[ ! -f "$ENV_FILE" ]]; then
 		echo "No .env found — creating from $ENV_EXAMPLE"
@@ -141,6 +146,7 @@ main() {
 	echo "==> Preparing environment..."
 	ensure_env_file
 	ensure_secret AGENT_API_KEY "sk-2brain-"
+	ensure_secret LITELLM_API_KEY "sk-agent-"
 	ensure_secret POSTGRES_PASSWORD
 	ensure_secret REDIS_PASSWORD
 	ensure_secret LITELLM_MASTER_KEY "sk-litellm-"
@@ -149,7 +155,28 @@ main() {
 	ensure_secret MINIO_ROOT_PASSWORD
 	ensure_secret CLICKHOUSE_PASSWORD
 
+	# Keep derived connection URLs consistent with generated secrets.
+	local postgres_host postgres_port postgres_db postgres_user postgres_password
+	local redis_host redis_port redis_password
+	postgres_host="$(get_env_value POSTGRES_HOST)"
+	postgres_port="$(get_env_value POSTGRES_PORT)"
+	postgres_db="$(get_env_value POSTGRES_DB)"
+	postgres_user="$(get_env_value POSTGRES_USER)"
+	postgres_password="$(get_env_value POSTGRES_PASSWORD)"
+	redis_host="$(get_env_value REDIS_HOST)"
+	redis_port="$(get_env_value REDIS_PORT)"
+	redis_password="$(get_env_value REDIS_PASSWORD)"
+
+	set_env_value "DATABASE_URL" "postgresql+asyncpg://${postgres_user}:${postgres_password}@${postgres_host}:${postgres_port}/${postgres_db}"
+	set_env_value "REDIS_URL" "redis://:${redis_password}@${redis_host}:${redis_port}/0"
+
 	echo "==> Starting services..."
+	# Ensure compose interpolation uses the just-prepared .env values even if
+	# parent shell exported stale placeholders.
+	set -a
+	# shellcheck disable=SC1090
+	source "$ENV_FILE"
+	set +a
 	docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
 
 	echo "==> Waiting for dependencies to become healthy..."

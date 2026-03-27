@@ -72,13 +72,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T031 [P] [US2] Implement sync invocation request/response schemas in api/models/run.py
-- [ ] T032 [P] [US2] Implement run route handler and error mapping in api/routes/agents.py
-- [ ] T033 [US2] Implement agent definition lookup + 404 behavior in agent/repositories/agents.py
-- [ ] T034 [US2] Implement sync execution path + trace propagation in agent/service.py
-- [ ] T035 [US2] Add route registration for sync invoke endpoint in api/main.py
-- [ ] T036 [US2] Enforce auth dependency on protected routes in api/routes/agents.py
-- [ ] T037 [US2] Ensure tenant namespace is attached to execution context in agent/service.py
+- [X] T031 [P] [US2] Implement sync invocation request/response schemas in api/models/run.py
+- [X] T032 [P] [US2] Implement run route handler and error mapping in api/routes/agents.py
+- [X] T033 [US2] Implement agent definition lookup + 404 behavior in agent/repositories/agents.py
+- [X] T034 [US2] Implement sync execution path + trace propagation in agent/service.py
+- [X] T035 [US2] Add route registration for sync invoke endpoint in api/main.py
+- [X] T036 [US2] Enforce auth dependency on protected routes in api/routes/agents.py
+- [X] T037 [US2] Ensure tenant namespace is attached to execution context in agent/service.py
 
 **Checkpoint**: Synchronous invocation contract works independently
 

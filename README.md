@@ -15,7 +15,7 @@ Architecture diagram: [docs/architecture.md](docs/architecture.md)
 - Isolate client workloads in a multi-tenant architecture.
 - Trace, inspect, and debug executions.
 
-Current repository status: setup and infrastructure scaffolding are implemented (Phase 1).
+Current repository status: foundational runtime and US1-US2 workflows are implemented.
 
 ## Use Cases
 
@@ -45,6 +45,12 @@ Implemented tasks so far:
 - T008: Caddy reverse proxy configuration with internal TLS and agent-api routing.
 
 ## How To Use
+
+### Runnable Examples
+
+- Examples index: [examples/README.md](examples/README.md)
+- US2 sync invoke script: [examples/us2_sync_example.py](examples/us2_sync_example.py)
+- US2 seed/setup helper: [examples/us2_seed_dev.sh](examples/us2_seed_dev.sh)
 
 ### Prerequisites
 
@@ -84,6 +90,14 @@ Cloud strategy:
 bash infra/bootstrap.sh
 ```
 
+Lightweight mode (recommended on Mac laptops):
+
+```bash
+bash infra/bootstrap-light.sh
+```
+
+This starts only `postgres`, `redis`, `litellm`, and `agent-api`.
+
 ### 4) Useful development commands
 
 ```bash
@@ -93,7 +107,9 @@ make PYTHON=/path/to/python test-full
 make PYTHON=/path/to/python run-api
 make PYTHON=/path/to/python run-worker
 make bootstrap
+make bootstrap-light
 docker compose -f infra/docker-compose.yml --env-file .env config
+docker compose -f infra/docker-compose.light.yml --env-file .env config
 ```
 
 ## How To Test
@@ -138,10 +154,17 @@ docker compose -f infra/docker-compose.yml --env-file .env config
 bash infra/bootstrap.sh
 ```
 
+Or start lightweight stack:
+
+```bash
+bash infra/bootstrap-light.sh
+```
+
 3. Check service status:
 
 ```bash
 docker compose -f infra/docker-compose.yml --env-file .env ps
+docker compose -f infra/docker-compose.light.yml --env-file .env ps
 ```
 
 4. Probe core dependencies:
@@ -149,8 +172,14 @@ docker compose -f infra/docker-compose.yml --env-file .env ps
 ```bash
 curl -f http://localhost:6333/healthz
 curl -f http://localhost:4000/health/liveliness
+curl -f http://localhost:8000/live
+curl -i http://localhost:8000/health
 curl -I http://localhost:3000
 ```
+
+Notes:
+- `/live` is liveness (process up) and is used by Docker healthcheck.
+- `/health` is readiness (postgres/redis/qdrant probes) and can return 503 when dependencies are degraded.
 
 ### E) Focused artifact checks
 

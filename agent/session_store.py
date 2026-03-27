@@ -12,14 +12,14 @@ TTL is a sliding window: every access resets the expiration to +SESSION_TTL_SECO
 """
 
 import json
-import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any
 
 import redis.asyncio as redis
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)

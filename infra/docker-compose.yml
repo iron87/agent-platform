@@ -128,10 +128,17 @@ services:
     image: ghcr.io/berriai/litellm:main-stable
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     environment:
+      # LiteLLM requires a DB when master_key is set (for virtual key validation + UI)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LOCAL_LLM_API_BASE: ${LOCAL_LLM_API_BASE}
+      LOCAL_LLM_API_KEY: ${LOCAL_LLM_API_KEY}
+      LOCAL_DEFAULT_MODEL: ${LOCAL_DEFAULT_MODEL}
+      LOCAL_FAST_MODEL: ${LOCAL_FAST_MODEL}
       LOCAL_EMBEDDING_API_BASE: ${LOCAL_EMBEDDING_API_BASE}
       LOCAL_EMBEDDING_API_KEY: ${LOCAL_EMBEDDING_API_KEY}
+      LOCAL_EMBEDDING_MODEL: ${LOCAL_EMBEDDING_MODEL}
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
@@ -150,33 +157,28 @@ services:
       timeout: 5s
       retries: 12
     depends_on:
+      postgres:
+        condition: service_healthy
       langfuse:
         condition: service_started
 
   agent-api:
     image: python:3.12-slim
     working_dir: /workspace
-    command: ["sh", "-c", "python -m http.server ${API_PORT}"]
-    environment:
-      API_PORT: ${API_PORT}
-      API_PREFIX: ${API_PREFIX}
-      AGENT_API_KEY: ${AGENT_API_KEY}
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      QDRANT_URL: ${QDRANT_URL}
-      LITELLM_BASE_URL: ${LITELLM_BASE_URL}
-      LITELLM_API_KEY: ${LITELLM_API_KEY}
-      LANGFUSE_HOST: ${LANGFUSE_HOST}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
-      GUARDRAILS_ENABLED: ${GUARDRAILS_ENABLED}
-      LANGFUSE_ENABLED: ${LANGFUSE_ENABLED}
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install -e . >/tmp/agent-api-pip.log 2>&1 && python -m uvicorn api.main:app --host 0.0.0.0 --port 8000",
+      ]
+    env_file:
+      - ../.env
     volumes:
       - ..:/workspace
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\" || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/live')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 12

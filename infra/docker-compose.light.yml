@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LOCAL_LLM_API_BASE: ${LOCAL_LLM_API_BASE}
+      LOCAL_LLM_API_KEY: ${LOCAL_LLM_API_KEY}
+      LOCAL_DEFAULT_MODEL: ${LOCAL_DEFAULT_MODEL}
+      LOCAL_FAST_MODEL: ${LOCAL_FAST_MODEL}
+      LOCAL_EMBEDDING_API_BASE: ${LOCAL_EMBEDDING_API_BASE}
+      LOCAL_EMBEDDING_API_KEY: ${LOCAL_EMBEDDING_API_KEY}
+      LOCAL_EMBEDDING_MODEL: ${LOCAL_EMBEDDING_MODEL}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_BUDGET_DEFAULT: ${LITELLM_BUDGET_DEFAULT}
+      LITELLM_BUDGET_FAST: ${LITELLM_BUDGET_FAST}
+      LITELLM_BUDGET_EMBEDDING: ${LITELLM_BUDGET_EMBEDDING}
+      LITELLM_BUDGET_DURATION: ${LITELLM_BUDGET_DURATION}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm/config.light.yaml.template:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  agent-api:
+    image: python:3.12-slim
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install -e . >/tmp/agent-api-pip.log 2>&1 && python -m uvicorn api.main:app --host 0.0.0.0 --port 8000",
+      ]
+    env_file:
+      - ../.env
+    volumes:
+      - ..:/workspace
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/live')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

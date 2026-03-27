@@ -6,11 +6,11 @@ with a Mem0 implementation that handles chunking, deduplication, and embedding.
 Per-tenant isolation: one Qdrant collection per client (`{client_id}_memory`).
 """
 
-import logging
 from dataclasses import dataclass
 from typing import Any, Protocol
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -199,7 +199,8 @@ class Mem0MemoryStore:
                 "provider": "openai",
                 "config": {
                     "model": "default",
-                    "api_key": self.settings.LITELLM_API_KEY,
+                    # Internal Mem0 calls should bypass virtual-key auth and use master key.
+                    "api_key": self.settings.LITELLM_MASTER_KEY,
                     "base_url": self.settings.LITELLM_BASE_URL + "/v1",
                 },
             },
@@ -207,7 +208,8 @@ class Mem0MemoryStore:
                 "provider": "openai",
                 "config": {
                     "model": "embedding",
-                    "api_key": self.settings.LITELLM_API_KEY,
+                    # Internal Mem0 calls should bypass virtual-key auth and use master key.
+                    "api_key": self.settings.LITELLM_MASTER_KEY,
                     "base_url": self.settings.LITELLM_BASE_URL + "/v1",
                     "embedding_dims": 1536,
                 },

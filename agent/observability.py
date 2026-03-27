@@ -7,13 +7,13 @@ Provides:
 - Trace metadata propagation (client_id, agent_id, job_id)
 """
 
-import logging
 from typing import TYPE_CHECKING, Any
+import structlog
 
 if TYPE_CHECKING:
     from langfuse.langchain import CallbackHandler
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def create_langfuse_handler(

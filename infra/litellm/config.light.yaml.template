@@ -1,7 +1,6 @@
 model_list:
   - model_name: default
     litellm_params:
-      # Local OpenAI-compatible model (Ollama/vLLM/LM Studio)
       model: os.environ/LOCAL_DEFAULT_MODEL
       api_base: os.environ/LOCAL_LLM_API_BASE
       api_key: os.environ/LOCAL_LLM_API_KEY
@@ -10,7 +9,6 @@ model_list:
 
   - model_name: fast
     litellm_params:
-      # Lower-latency local model
       model: os.environ/LOCAL_FAST_MODEL
       api_base: os.environ/LOCAL_LLM_API_BASE
       api_key: os.environ/LOCAL_LLM_API_KEY
@@ -30,7 +28,6 @@ litellm_settings:
   request_timeout: 180
   fallbacks:
     - default: ["fast"]
-  callbacks: ["langfuse_otel"]
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY

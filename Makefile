@@ -1,9 +1,12 @@
-.PHONY: bootstrap run run-api run-worker test test-all test-full test-unit test-integration lint typecheck format
+.PHONY: bootstrap bootstrap-light run run-api run-worker test test-all test-full test-unit test-integration lint typecheck format
 
 PYTHON ?= python
 
 bootstrap:
 	bash infra/bootstrap.sh
+
+bootstrap-light:
+	bash infra/bootstrap-light.sh
 
 run: run-api
 

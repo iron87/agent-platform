@@ -185,6 +185,71 @@ curl -s -X POST https://your-platform-host/api/v1/run \
   }' | jq .
 ```
 
+  ### US2 practical example — support triage use case (real runnable code)
+
+  Use case:
+  - A client system sends a ticket text to the platform.
+  - The synchronous `/run` endpoint returns a triage draft and a `trace_id`.
+  - The client stores `trace_id` for observability/audit.
+
+  Runnable Python example:
+
+  ```python
+  #!/usr/bin/env python3
+  import json
+  import os
+  import sys
+  import urllib.request
+
+
+  BASE_URL = os.getenv("AGENT_BASE_URL", "http://localhost:8000")
+  API_KEY = os.getenv("AGENT_API_KEY", "")
+  AGENT_ID = os.getenv("AGENT_ID", "00000000-0000-0000-0000-000000000001")
+
+  if not API_KEY:
+    print("Set AGENT_API_KEY before running this script.", file=sys.stderr)
+    sys.exit(1)
+
+  payload = {
+    "agent_id": AGENT_ID,
+    "input": (
+      "Customer ticket: user cannot reset password and receives code 429. "
+      "Provide a triage summary with priority and next action."
+    ),
+    "metadata": {
+      "source": "support-system",
+      "ticket_id": "SUP-1042",
+      "tenant": "acme",
+    },
+  }
+
+  req = urllib.request.Request(
+    url=f"{BASE_URL}/api/v1/run",
+    method="POST",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={
+      "Content-Type": "application/json",
+      "X-API-Key": API_KEY,
+    },
+  )
+
+  with urllib.request.urlopen(req, timeout=60) as response:
+    body = json.loads(response.read().decode("utf-8"))
+
+  print("status:", response.status)
+  print("job_id:", body.get("job_id"))
+  print("trace_id:", body.get("trace_id"))
+  print("output:\n", body.get("output", ""))
+  ```
+
+  Run it:
+
+  ```bash
+  export AGENT_API_KEY="sk-2brain-<your-key>"
+  export AGENT_ID="00000000-0000-0000-0000-000000000001"
+  python examples/us2_sync_example.py
+  ```
+
 ### Conversational session — multi-turn
 
 ```bash
