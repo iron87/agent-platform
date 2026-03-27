@@ -52,13 +52,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Implement health dependency probes (postgres/redis/qdrant) in api/routes/health.py
-- [ ] T025 [US1] Mount unauthenticated `/health` route in api/main.py
-- [ ] T026 [US1] Add bootstrap idempotency logic (no secret regeneration unless forced) in infra/bootstrap.sh
-- [ ] T027 [US1] Add startup summary output with generated API key and endpoints in infra/bootstrap.sh
-- [ ] T028 [US1] Add compose healthchecks and startup ordering for all services in infra/docker-compose.yml
-- [ ] T029 [US1] Add bootstrap missing-key preflight validation in infra/bootstrap.sh
-- [ ] T030 [US1] Document bootstrap + health verification flow in specs/001-ai-agent-platform/quickstart.md
+- [X] T024 [US1] Implement health dependency probes (postgres/redis/qdrant) in api/routes/health.py
+- [X] T025 [US1] Mount unauthenticated `/health` route in api/main.py
+- [X] T026 [US1] Add bootstrap idempotency logic (no secret regeneration unless forced) in infra/bootstrap.sh
+- [X] T027 [US1] Add startup summary output with generated API key and endpoints in infra/bootstrap.sh
+- [X] T028 [US1] Add compose healthchecks and startup ordering for all services in infra/docker-compose.yml
+- [X] T029 [US1] Add bootstrap missing-key preflight validation in infra/bootstrap.sh
+- [X] T030 [US1] Document bootstrap + health verification flow in specs/001-ai-agent-platform/quickstart.md
 
 **Checkpoint**: Platform can be bootstrapped and verified end-to-end
 

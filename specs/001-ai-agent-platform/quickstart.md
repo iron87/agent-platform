@@ -36,47 +36,64 @@ bash infra/bootstrap.sh
 ```
 
 **What the script does automatically:**
-- Generates all internal secrets (Postgres password, Redis password, LiteLLM master key, Langfuse keys, internal agent API key) using `openssl rand`.
+- **Preflight**: verifies `docker`, `openssl`, `curl` are available and the Docker daemon is running.
+- **Idempotent secrets**: generates all internal secrets on first run; re-runs are safe — existing secrets are preserved. To force regeneration: `FORCE_REGENERATE=true bash infra/bootstrap.sh`.
 - Writes a `.env` file at the repo root (never committed).
-- Prompts for the only values requiring manual input: `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY`.
-- Runs `docker compose --env-file .env up -d` to start all services.
-- Waits for all health checks to pass (up to 3 minutes).
-- Prints a summary including the generated `AGENT_API_KEY` — **save this, it is shown only once**.
+- Set `ANTHROPIC_API_KEY` and/or `OPENAI_API_KEY` in `.env` for external LLM access (optional when using a local model).
+- Runs `docker compose --env-file .env up -d` to start all services in dependency order.
+- Waits for each service to pass its healthcheck (up to 2 min per service).
+- Prints a full summary including the generated `AGENT_API_KEY`.
 
 Expected output on success:
 ```
-✓ Postgres        healthy
-✓ Redis           healthy
-✓ Qdrant          healthy
-✓ LiteLLM         healthy
-✓ Langfuse        healthy
-✓ agent-api       healthy
+==> Running preflight checks...
+==> Preparing environment...
+.env already exists — skipping creation (use FORCE_REGENERATE=true to reset secrets)
+==> Starting services...
+==> Waiting for dependencies to become healthy...
+  [✓] qdrant
+  [✓] langfuse
+  [✓] litellm
+  [✓] agent-api
 
-Bootstrap complete.
-AGENT_API_KEY: sk-2brain-<generated>
-Langfuse UI:   http://localhost:3000  (admin / <generated-password>)
-Agent API:     http://localhost:8000
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ Bootstrap complete — 2brain AI Agent Platform
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Environment file : /path/to/.env
+  Agent API        : http://localhost:8000
+  Health endpoint  : http://localhost:8000/health
+  LiteLLM proxy    : http://localhost:4000
+  Langfuse UI      : http://localhost:3000
+
+  API Key (X-API-Key header):
+    sk-2brain-<generated>
+
+  Quick verify:
+    curl -s http://localhost:8000/health | python -m json.tool
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ### Step 3 — Verify the health endpoint
 
 ```bash
-curl http://localhost:8000/health
+curl -s http://localhost:8000/health | python -m json.tool
 ```
 
-Expected response (`200 OK`):
+Expected response (`200 OK`) when all dependencies are healthy:
 ```json
 {
-  "status": "healthy",
+  "status": "ok",
   "dependencies": {
-    "postgres": "ok",
-    "redis": "ok",
-    "qdrant": "ok"
+    "postgres": {"status": "healthy", "latency_ms": 3},
+    "redis":    {"status": "healthy", "latency_ms": 1},
+    "qdrant":   {"status": "healthy", "latency_ms": 5}
   }
 }
 ```
 
-If any dependency shows `"error"`, check `docker compose logs <service>` for the relevant container.
+If any dependency returns `"status": "unhealthy"`, the overall HTTP status is `503` and an `"error"` field explains the cause. Check `docker compose logs <service>` for details.
 
 ### Step 4 — Verify a test agent invocation
 
