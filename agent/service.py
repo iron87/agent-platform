@@ -369,13 +369,15 @@ class AgentService:
         6. Append user turn + response turn to session history
         7. Return output + trace_id + session_id
         """
-        from agent.session_store import SessionTurn
+        from agent.models import SessionTurn
         from datetime import datetime, timezone
 
         start_time = datetime.now(timezone.utc)
 
         if not request.session_id:
             raise ValueError("session_id required for SESSION mode")
+        if self.session_store is None:
+            raise ValueError("session_store is not configured for SESSION mode")
 
         # Load agent definition
         agent_def = await self.agent_repo.get_by_id(request.agent_id)
@@ -388,6 +390,14 @@ class AgentService:
             session_id=request.session_id,
         )
 
+        # Create session metadata lazily on first use.
+        if len(session_turns) == 0:
+            await self.session_store.create_session(
+                client_id=request.client_id,
+                session_id=request.session_id,
+                agent_id=request.agent_id,
+            )
+
         # Build message history
         messages = [
             {
@@ -398,6 +408,7 @@ class AgentService:
         ]
 
         # Prepare execution state
+        system_prompt = self._load_prompt_text(agent_def.get("prompt_file"))
         state = {
             "client_id": request.client_id,
             "job_id": request.session_id,  # Use session_id as pseudo-job
@@ -407,15 +418,50 @@ class AgentService:
             "pending_tool": None,
             "tool_args": None,
             "tool_result": None,
+            "output": None,
             "status": "running",
             "approved": None,
             "error": None,
+            "_llm_client": self.llm_client,
+            "_model_alias": str(agent_def.get("model_alias") or "default"),
+            "_system_prompt": system_prompt,
         }
 
         # Select and execute graph
         graph = self._get_graph(agent_def["graph_type"])
         if graph is None:
-            raise ValueError(f"Graph type not registered: {agent_def['graph_type']}")
+            # Temporary fallback while non-conversational graphs are not registered.
+            completion_messages = messages.copy()
+            if system_prompt:
+                completion_messages = [{"role": "system", "content": system_prompt}, *completion_messages]
+            completion_messages.append({"role": "user", "content": request.input})
+
+            completion = await self.llm_client.create_completion(
+                model=str(agent_def.get("model_alias") or "default"),
+                messages=completion_messages,
+            )
+            output = completion.choices[0].message.content or ""
+
+            now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            await self.session_store.append_turn(
+                client_id=request.client_id,
+                session_id=request.session_id,
+                turn=SessionTurn(role="user", content=request.input, timestamp=now),
+            )
+            await self.session_store.append_turn(
+                client_id=request.client_id,
+                session_id=request.session_id,
+                turn=SessionTurn(role="assistant", content=output, timestamp=now),
+            )
+
+            end_time = datetime.now(timezone.utc)
+            execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+            return ExecutionResult(
+                output=output,
+                trace_id=None,
+                session_id=request.session_id,
+                execution_time_ms=execution_time_ms,
+            )
 
         try:
             from agent.observability import ExecutionTraceContext

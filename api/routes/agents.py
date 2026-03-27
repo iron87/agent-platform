@@ -4,11 +4,13 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import LiteLLMClient
 from agent.repositories import AgentNotFoundError, AgentsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
+from agent.session_store import RedisSessionStore
 from api.config import Settings
 from api.db import get_db_session
 from api.deps import TenantContext, get_current_tenant
@@ -22,10 +24,18 @@ def _normalize_litellm_base_url(base_url: str) -> str:
 
 
 def _build_agent_service(session: AsyncSession, settings: Settings) -> AgentService:
+	from agent import graphs as graph_factory
+
+	redis_client = redis.from_url(settings.REDIS_URL)
+	session_store = RedisSessionStore(
+		redis_client=redis_client,
+		session_ttl_seconds=settings.SESSION_TTL_SECONDS,
+	)
+
 	return AgentService(
 		agent_repo=AgentsRepository(session),
 		jobs_repo=None,
-		session_store=None,
+		session_store=session_store,
 		memory_store=None,
 		llm_client=LiteLLMClient(
 			base_url=_normalize_litellm_base_url(settings.LITELLM_BASE_URL),
@@ -34,6 +44,7 @@ def _build_agent_service(session: AsyncSession, settings: Settings) -> AgentServ
 			api_key=settings.LITELLM_MASTER_KEY,
 		),
 		settings=settings,
+		graph_factory=graph_factory,
 	)
 
 
@@ -51,7 +62,8 @@ async def run_agent(
 		client_id=str(tenant.client_id),
 		agent_id=str(payload.agent_id),
 		input=payload.input,
-		mode=ExecutionMode.SYNC,
+		mode=ExecutionMode.SESSION if payload.session_id else ExecutionMode.SYNC,
+		session_id=payload.session_id,
 		metadata={
 			**payload.metadata,
 			"tenant_id": str(tenant.client_id),

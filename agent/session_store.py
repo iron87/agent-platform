@@ -19,44 +19,9 @@ from typing import Any
 import redis.asyncio as redis
 import structlog
 
+from agent.models.session import SessionTurn
+
 logger = structlog.get_logger(__name__)
-
-
-@dataclass(frozen=True)
-class SessionTurn:
-    """A single turn in a conversational session.
-
-    Roles:
-      - "user": Input from the human/client
-      - "assistant": Response from the agent
-
-    Attributes:
-        role: "user" or "assistant"
-        content: The message text (user prompt or assistant response)
-        timestamp: ISO 8601 timestamp when the turn was recorded
-    """
-
-    role: str
-    """One of 'user' or 'assistant'"""
-
-    content: str
-    """Turn text; 1-131072 characters"""
-
-    timestamp: str
-    """ISO 8601 formatted UTC timestamp (e.g., '2026-03-14T10:00:00Z')"""
-
-    def to_dict(self) -> dict[str, str]:
-        """Convert to JSON-serializable dict."""
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "SessionTurn":
-        """Reconstruct from JSON dict."""
-        return cls(
-            role=data["role"],
-            content=data["content"],
-            timestamp=data["timestamp"],
-        )
 
 
 @dataclass(frozen=True)
@@ -147,12 +112,25 @@ class RedisSessionStore:
             ttl_seconds=session_ttl_seconds,
         )
 
+    @staticmethod
+    def _validate_namespace_inputs(client_id: str, session_id: str) -> None:
+        """Validate tenant/session IDs used to compose Redis keys.
+
+        Prevents malformed keys and enforces tenant-isolated namespace usage.
+        """
+        if not client_id or ":" in client_id:
+            raise ValueError("client_id must be non-empty and must not contain ':'")
+        if not session_id or len(session_id) > 128 or ":" in session_id:
+            raise ValueError("session_id must be 1-128 chars and must not contain ':'")
+
     def _turns_key(self, client_id: str, session_id: str) -> str:
         """Generate Redis key for session turns (message history)."""
+        self._validate_namespace_inputs(client_id, session_id)
         return f"{client_id}:session:{session_id}:turns"
 
     def _meta_key(self, client_id: str, session_id: str) -> str:
         """Generate Redis key for session metadata."""
+        self._validate_namespace_inputs(client_id, session_id)
         return f"{client_id}:session:{session_id}:meta"
 
     async def create_session(
@@ -171,8 +149,7 @@ class RedisSessionStore:
         Raises:
             ValueError: If session_id is empty or > 128 chars
         """
-        if not session_id or len(session_id) > 128:
-            raise ValueError("session_id must be 1-128 characters")
+        self._validate_namespace_inputs(client_id, session_id)
 
         turns_key = self._turns_key(client_id, session_id)
         meta_key = self._meta_key(client_id, session_id)
@@ -232,9 +209,7 @@ class RedisSessionStore:
         pipe.rpush(turns_key, turn_json)
         pipe.expire(turns_key, self.ttl)
         
-        # Update metadata
-        pipe.hget(meta_key, "agent_id")
-        _ = await pipe.execute()
+        await pipe.execute()
 
         # Get turn count
         turn_count = await self.redis.llen(turns_key)
@@ -321,6 +296,9 @@ class RedisSessionStore:
         if not meta_dict:
             return None
 
+        # Sliding TTL refresh on metadata access
+        await self.redis.expire(meta_key, self.ttl)
+
         return SessionMetadata.from_dict(meta_dict)
 
     async def delete_session(
@@ -371,7 +349,8 @@ class RedisSessionStore:
             cursor, keys = await self.redis.scan(cursor, match=pattern)
             for key in keys:
                 # Extract session_id from key format: {client_id}:session:{session_id}:meta
-                session_id = key.decode().split(":")[2]
+                raw_key = key.decode() if isinstance(key, bytes) else key
+                session_id = raw_key.split(":")[2]
                 session_ids.append(session_id)
 
             if cursor == 0:

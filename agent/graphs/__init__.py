@@ -7,10 +7,12 @@ Provides:
 """
 
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from langgraph.graph import StateGraph
 import structlog
+
+from agent.graphs.conversational import build_conversational_graph
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -21,9 +23,9 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
-# Placeholder imports for future graph implementations
-# These will be populated as T017+ complete the individual graph modules
-_GRAPHS: dict[str, type[StateGraph]] = {}
+_GRAPHS: dict[str, Callable[[], StateGraph]] = {
+    "conversational": build_conversational_graph,
+}
 
 
 async def create_graph_checkpointer(engine: "AsyncEngine") -> Any:
@@ -57,18 +59,18 @@ async def create_graph_checkpointer(engine: "AsyncEngine") -> Any:
     return checkpointer
 
 
-def register_graph(graph_type: str, graph_class: type[StateGraph]) -> None:
+def register_graph(graph_type: str, graph_builder: Callable[[], StateGraph]) -> None:
     """Register a graph implementation in the runtime registry.
     
     Args:
         graph_type: One of 'conversational', 'tool_agent', 'batch_agent'
-        graph_class: Compiled StateGraph class for this type
+        graph_builder: Callable returning a compiled StateGraph
     """
-    _GRAPHS[graph_type] = graph_class
+    _GRAPHS[graph_type] = graph_builder
     logger.info(
         "graph_registered",
         graph_type=graph_type,
-        graph_class=graph_class.__name__,
+        graph_builder=getattr(graph_builder, "__name__", "<callable>"),
     )
 
 
@@ -81,7 +83,7 @@ def get_graph_builder(
         graph_type: One of 'conversational', 'tool_agent', 'batch_agent'
         
     Returns:
-        Compiled StateGraph class, or None if graph_type is not registered
+        Graph builder callable, or None if graph_type is not registered
     """
     return _GRAPHS.get(graph_type)
 

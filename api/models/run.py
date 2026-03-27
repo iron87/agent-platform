@@ -22,7 +22,18 @@ class RunRequest(APIModel):
         normalized = value.strip()
         if not normalized:
             raise ValueError("session_id must not be blank.")
+        if ":" in normalized:
+            raise ValueError("session_id must not contain ':'.")
         return normalized
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata_guards(cls, value: dict[str, Any]) -> dict[str, Any]:
+        lowered = {k.lower() for k in value.keys()}
+        forbidden = {"tenant_id", "client_id"}
+        if lowered.intersection(forbidden):
+            raise ValueError("metadata must not include tenant_id or client_id.")
+        return value
 
 
 class RunResponse(APIModel):

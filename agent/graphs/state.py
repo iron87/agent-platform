@@ -49,6 +49,9 @@ class AgentState(TypedDict):
     tool_result: str | None
     """Output from tool execution; set by tool node, consumed by agent node"""
 
+    output: str | None
+    """Final model response text for the current execution."""
+
     # Control flow
     status: str
     """Execution status: 'running' | 'interrupted' | 'completed' | 'failed'
@@ -72,3 +75,8 @@ class AgentState(TypedDict):
 
     error: str | None
     """Error message if status='failed'; describes why execution stopped"""
+
+    # Runtime-only helpers injected by service before graph invocation
+    _llm_client: Any | None
+    _model_alias: str | None
+    _system_prompt: str | None

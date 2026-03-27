@@ -7,6 +7,7 @@ This folder contains runnable examples for implemented user stories.
 Files:
 - `examples/us2_sync_example.py`: sends a real `POST /api/v1/run` request with auth.
 - `examples/us2_seed_dev.sh`: applies schema + seeds one client and one agent definition for local testing.
+- `examples/us3_session_example.py`: sends three turns with the same `session_id` to validate session continuity.
 
 ### End-to-end run (local)
 
@@ -73,3 +74,20 @@ If bootstrap fails on dependencies:
 ```bash
 bash infra/bootstrap.sh
 ```
+
+## US3 - Conversational Session (3 turns)
+
+Run the session example:
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+export AGENT_ID="00000000-0000-0000-0000-000000000001"
+export AGENT_SESSION_ID="us3-demo-session-1"
+export AGENT_TIMEOUT_SECONDS=240
+python examples/us3_session_example.py
+```
+
+Expected behavior:
+- all three calls return `status=200`
+- all three responses show the same `session_id`
+- turn 3 can reference context from turns 1 and 2

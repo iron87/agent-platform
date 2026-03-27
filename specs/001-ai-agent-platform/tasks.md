@@ -92,12 +92,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Implement session turn serialization model in agent/models/session.py
-- [ ] T039 [US3] Implement session history load/append/TTL refresh operations in agent/session_store.py
-- [ ] T040 [US3] Inject session context into conversational graph execution in agent/graphs/conversational.py
-- [ ] T041 [US3] Add session-aware mode branching in agent/service.py
-- [ ] T042 [US3] Add `session_id` validation and tenancy guards in api/models/run.py
-- [ ] T043 [US3] Add tenant-isolated session key naming enforcement in agent/session_store.py
+- [X] T038 [P] [US3] Implement session turn serialization model in agent/models/session.py
+- [X] T039 [US3] Implement session history load/append/TTL refresh operations in agent/session_store.py
+- [X] T040 [US3] Inject session context into conversational graph execution in agent/graphs/conversational.py
+- [X] T041 [US3] Add session-aware mode branching in agent/service.py
+- [X] T042 [US3] Add `session_id` validation and tenancy guards in api/models/run.py
+- [X] T043 [US3] Add tenant-isolated session key naming enforcement in agent/session_store.py
 
 **Checkpoint**: Stateful conversation works with TTL and tenant isolation
 

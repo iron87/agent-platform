@@ -51,6 +51,7 @@ Implemented tasks so far:
 - Examples index: [examples/README.md](examples/README.md)
 - US2 sync invoke script: [examples/us2_sync_example.py](examples/us2_sync_example.py)
 - US2 seed/setup helper: [examples/us2_seed_dev.sh](examples/us2_seed_dev.sh)
+- US3 session invoke script: [examples/us3_session_example.py](examples/us3_session_example.py)
 
 ### Prerequisites
 
