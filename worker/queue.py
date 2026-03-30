@@ -7,16 +7,50 @@ Provides:
 - Graceful handling of rq unavailability
 """
 
-from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Any, Mapping
 import structlog
 
 logger = structlog.get_logger(__name__)
+
+DEFAULT_RETRY_INTERVALS = (30, 120, 300)
+DEFAULT_RESULT_TTL_SECONDS = 86400
+DEFAULT_FAILURE_TTL_SECONDS = 7 * 86400
 
 
 class QueueUnavailableError(Exception):
     """Raised when rq Queue or Redis is unavailable."""
 
     pass
+
+
+@dataclass(frozen=True)
+class AgentJobEnqueueRequest:
+    job_id: str
+    client_id: str
+    agent_id: str
+    input: str
+    session_id: str | None = None
+    metadata: Mapping[str, Any] | None = None
+    mode: str = "async"
+    queue_name: str = "agent_jobs"
+    task_path: str = "worker.tasks.run_agent_job"
+    timeout_seconds: int | None = None
+    max_retries: int = 3
+    retry_intervals: tuple[int, ...] = DEFAULT_RETRY_INTERVALS
+    result_ttl_seconds: int = DEFAULT_RESULT_TTL_SECONDS
+    failure_ttl_seconds: int = DEFAULT_FAILURE_TTL_SECONDS
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "job_id": self.job_id,
+            "client_id": self.client_id,
+            "agent_id": self.agent_id,
+            "input": self.input,
+            "session_id": self.session_id,
+            "metadata": dict(self.metadata or {}),
+            "mode": self.mode,
+        }
 
 
 def create_queue(
@@ -77,6 +111,9 @@ def enqueue_job(
     timeout_seconds: int | None = None,
     max_retries: int = 3,
     retry_intervals: list[int] | None = None,
+    meta: dict[str, Any] | None = None,
+    result_ttl_seconds: int = DEFAULT_RESULT_TTL_SECONDS,
+    failure_ttl_seconds: int = DEFAULT_FAILURE_TTL_SECONDS,
 ) -> Any:
     """Enqueue a job to the rq queue with retry and callback configuration.
 
@@ -113,9 +150,9 @@ def enqueue_job(
             job_id=str(job_id),
             retry=retry_policy,
             timeout=timeout_seconds,
-            result_ttl=86400,  # Keep results for 24 hours
-            failure_ttl=7 * 86400,  # Keep failures for 7 days
-            meta={"client_id": client_id},
+            result_ttl=result_ttl_seconds,
+            failure_ttl=failure_ttl_seconds,
+            meta=meta or {"client_id": client_id},
         )
 
         logger.info(
@@ -126,6 +163,8 @@ def enqueue_job(
             queue=queue.name,
             retries=max_retries,
             timeout_seconds=timeout_seconds,
+            result_ttl_seconds=result_ttl_seconds,
+            failure_ttl_seconds=failure_ttl_seconds,
         )
 
         return job
@@ -140,6 +179,32 @@ def enqueue_job(
             error_message=str(e),
         )
         raise QueueUnavailableError(f"Failed to enqueue job: {e}")
+
+
+def enqueue_agent_job(*, redis_url: str, request: AgentJobEnqueueRequest) -> Any:
+    """Enqueue an async agent job using the request envelope used by the API layer."""
+    queue = create_queue(
+        redis_url,
+        queue_name=request.queue_name,
+        job_timeout_seconds=request.timeout_seconds or 300,
+    )
+    return enqueue_job(
+        queue,
+        request.task_path,
+        request.to_payload(),
+        job_id=request.job_id,
+        client_id=request.client_id,
+        timeout_seconds=request.timeout_seconds,
+        max_retries=request.max_retries,
+        retry_intervals=list(request.retry_intervals),
+        meta={
+            "client_id": request.client_id,
+            "agent_id": request.agent_id,
+            "mode": request.mode,
+        },
+        result_ttl_seconds=request.result_ttl_seconds,
+        failure_ttl_seconds=request.failure_ttl_seconds,
+    )
 
 
 def get_job_status(queue: Any, job_id: str) -> dict[str, Any] | None:
@@ -267,8 +332,13 @@ class JobCallbackBridge:
 
 
 __all__ = [
+    "AgentJobEnqueueRequest",
+    "DEFAULT_FAILURE_TTL_SECONDS",
+    "DEFAULT_RESULT_TTL_SECONDS",
+    "DEFAULT_RETRY_INTERVALS",
     "create_queue",
     "enqueue_job",
+    "enqueue_agent_job",
     "get_job_status",
     "cancel_job",
     "JobCallbackBridge",

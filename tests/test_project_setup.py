@@ -262,7 +262,7 @@ def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
     assert "class JobCallbackBridge" in queue_module
     assert "class QueueUnavailableError" in queue_module
     assert "Retry(" in queue_module
-    assert "result_ttl=86400" in queue_module
+    assert "result_ttl=86400" in queue_module or "DEFAULT_RESULT_TTL_SECONDS = 86400" in queue_module
 
 
 def test_phase_two_foundation_complete_t023_orchestrator_exists() -> None:

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Integer, MetaData, String, Table, Text, func, select
+from sqlalchemy import Boolean, DateTime, Integer, MetaData, String, Table, Text, func, insert, select, update
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
@@ -151,9 +151,30 @@ class AgentDefinitionsRepository(Repository):
 
 
 class JobsRepository(Repository):
-    async def get_by_id(self, job_id: UUID) -> Mapping[str, Any] | None:
-        statement = select(jobs_table).where(jobs_table.c.id == job_id)
+    async def get_by_id(self, job_id: UUID | str) -> Mapping[str, Any] | None:
+        statement = select(jobs_table).where(jobs_table.c.id == UUID(str(job_id)))
         return await self.fetch_one(statement)
+
+    async def create(self, values: Mapping[str, Any]) -> str:
+        normalized_values = dict(values)
+        for key in ("id", "client_id", "agent_id"):
+            if key in normalized_values:
+                normalized_values[key] = UUID(str(normalized_values[key]))
+
+        statement = insert(jobs_table).values(**normalized_values).returning(jobs_table.c.id)
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        created_job_id = result.scalar_one()
+        return str(created_job_id)
+
+    async def update_rq_job_id(self, job_id: UUID | str, rq_job_id: str) -> None:
+        statement = (
+            update(jobs_table)
+            .where(jobs_table.c.id == UUID(str(job_id)))
+            .values(rq_job_id=rq_job_id)
+        )
+        await self.session.execute(statement)
+        await self.session.commit()
 
 
 class ApprovalRequestsRepository(Repository):

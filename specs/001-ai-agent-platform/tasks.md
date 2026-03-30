@@ -111,7 +111,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T044 [P] [US4] Implement web search tool wrapper in agent/tools/web_search.py
+- [X] T044 [P] [US4] Implement web search tool wrapper in agent/tools/web_search.py
 - [ ] T045 [P] [US4] Implement sandboxed code execution tool wrapper in agent/tools/code_exec.py
 - [ ] T046 [P] [US4] Implement REST caller tool wrapper with timeout handling in agent/tools/rest_caller.py
 - [ ] T047 [P] [US4] Implement sandboxed file operations tool wrapper in agent/tools/file_ops.py
@@ -135,7 +135,7 @@
 - [ ] T052 [US5] Implement `POST /jobs` and `GET /jobs/{job_id}` handlers in api/routes/jobs.py
 - [ ] T053 [US5] Implement job repository CRUD + status transitions in agent/repositories/jobs.py
 - [ ] T054 [US5] Implement rq task runner entrypoint and callbacks in worker/tasks.py
-- [ ] T055 [US5] Implement enqueue path from API to rq with retry and timeout policy in worker/queue.py
+- [X] T055 [US5] Implement enqueue path from API to rq with retry and timeout policy in worker/queue.py
 - [ ] T056 [US5] Implement restart reconciliation loop (rq ↔ postgres status sync) in worker/reconcile.py
 - [ ] T057 [US5] Enforce tenant-scoped job lookup and 404 isolation in api/routes/jobs.py
 

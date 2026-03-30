@@ -527,8 +527,12 @@ class AgentService:
         from uuid import uuid4
         from datetime import datetime, timezone
 
+        agent_def = await self.agent_repo.get_by_id(request.agent_id)
         job_id = str(uuid4())
         now = datetime.now(timezone.utc)
+        effective_timeout_seconds = int(
+            agent_def.get("max_execution_seconds") or self.settings.JOB_TIMEOUT_SECONDS
+        )
 
         # Create job record in PostgreSQL
         job_record = {
@@ -536,7 +540,11 @@ class AgentService:
             "client_id": request.client_id,
             "agent_id": request.agent_id,
             "session_id": request.session_id,
-            "input_payload": request.metadata or {},
+            "input_payload": {
+                "input": request.input,
+                "session_id": request.session_id,
+                "metadata": request.metadata or {},
+            },
             "status": "pending",
             "result": None,
             "error": None,
@@ -555,20 +563,19 @@ class AgentService:
         rq_job_id = None
         if self.queue_factory:
             try:
-                queue = self.queue_factory.create_queue(self.settings.REDIS_URL)
-                job = self.queue_factory.enqueue_job(
-                    queue,
-                    "worker.tasks.run_agent_job",
-                    {
-                        "client_id": request.client_id,
-                        "agent_id": request.agent_id,
-                        "input": request.input,
-                        "session_id": request.session_id,
-                        "job_id": job_id_created,
-                    },
+                enqueue_request = self.queue_factory.AgentJobEnqueueRequest(
                     job_id=job_id_created,
                     client_id=request.client_id,
-                    timeout_seconds=self.settings.JOB_TIMEOUT_SECONDS,
+                    agent_id=request.agent_id,
+                    input=request.input,
+                    session_id=request.session_id,
+                    metadata=request.metadata or {},
+                    queue_name=self.settings.RQ_QUEUE_NAME,
+                    timeout_seconds=effective_timeout_seconds,
+                )
+                job = self.queue_factory.enqueue_agent_job(
+                    redis_url=self.settings.REDIS_URL,
+                    request=enqueue_request,
                 )
                 rq_job_id = job.id
 
