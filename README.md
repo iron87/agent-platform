@@ -15,7 +15,7 @@ Architecture diagram: [docs/architecture.md](docs/architecture.md)
 - Isolate client workloads in a multi-tenant architecture.
 - Trace, inspect, and debug executions.
 
-Current repository status: foundational runtime (Phases 1-2) and US1-US5 core workflows are implemented. Tools implementation (T044-T047) in progress.
+Current repository status: foundational runtime (Phases 1-2) and US1-US5 core workflows are implemented. Tool wrappers T044-T047 are complete; orchestration and tracing integration tasks are in progress.
 
 ## Features & Capabilities
 
@@ -48,8 +48,8 @@ Current repository status: foundational runtime (Phases 1-2) and US1-US5 core wo
 **Tools** (Agent Capabilities)
 - ✅ **Web Search** — DuckDuckGo Instant Answer API (encyclopedia-style results)
 - ✅ **Code Execution** — sandboxed Python subprocess with timeout + resource limits
-- 🚧 **REST Caller** — HTTP requests with headers, auth, timeout handling (in progress)
-- 🚧 **File Operations** — read/write files in isolated directory (in progress)
+- ✅ **REST Caller** — HTTP requests with headers, auth, timeout handling
+- ✅ **File Operations** — sandboxed read/write/list/delete in isolated directory
 - Tool allowlist per agent definition
 
 **Memory & Context**
@@ -78,8 +78,6 @@ Current repository status: foundational runtime (Phases 1-2) and US1-US5 core wo
 
 ### 🚧 In Progress
 
-- REST caller tool (T046)
-- File operations tool (T047)
 - Tool registry and agent-level tool allowlisting (T048)
 - Tool-agent graph loop with retry/fallback (T049)
 - Tool call observability integration (T050)
@@ -128,7 +126,7 @@ Main use cases this platform targets:
 - ✅ T044: Web search tool wrapper (`agent/tools/web_search.py`)
 - ✅ T045: Code execution tool wrapper (`agent/tools/code_exec.py`) — sandboxed subprocess, timeout, output capture
 - ✅ T046: REST caller tool wrapper (`agent/tools/rest_caller.py`) — timeout handling, method allowlist, response truncation
-- ⏳ T047: File operations tool wrapper (planned)
+- ✅ T047: File operations tool wrapper (`agent/tools/file_ops.py`) — sandboxed root confinement, safe path validation, read/write/list/delete actions
 - ⏳ T048-T050: Tool registry, tool-agent graph loop, observability integration
 
 **Phase 7 (US5 — Async Jobs)**: 🚧 In Progress
@@ -146,6 +144,7 @@ Main use cases this platform targets:
   - Web search: [examples/us4_web_search_example.py](examples/us4_web_search_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
   - Code execution: [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
   - REST caller: [examples/us4_rest_caller_example.py](examples/us4_rest_caller_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
+  - File ops: [examples/us4_file_ops_example.py](examples/us4_file_ops_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
 
 ### Prerequisites
 

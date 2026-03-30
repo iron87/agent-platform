@@ -274,3 +274,51 @@ If Mode 2 fails with `Connection error`:
 - ensure `LITELLM_BASE_URL` is `http://localhost:4000/v1` when running from host terminal
 - verify LiteLLM health: `curl -s http://localhost:4000/health`
 
+## US4 - File Operations Tool
+
+Files:
+- `examples/us4_file_ops_example.py`: runs sandboxed file operations in two modes — tool-only (default) or full LLM loop (`WITH_LLM=1`).
+
+The tool executes file reads/writes inside a sandbox root directory and blocks path traversal outside that root.
+
+### Mode 1 — Tool only (no LLM required)
+
+```bash
+export FILE_OPS_ROOT_DIR="/tmp/2brain_file_ops_example"   # optional
+python examples/us4_file_ops_example.py
+```
+
+Expected output:
+- `make_dir` creates a sandbox subdirectory
+- `write_file` writes content under sandbox
+- `read_file` returns file content
+- `list_dir` shows sandbox entries
+- `delete_path` removes the folder recursively
+
+### Mode 2 — Full LLM loop
+
+```bash
+export LITELLM_BASE_URL="http://localhost:4000/v1"
+export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d'=' -f2-)"
+export FILE_OPS_TASK="Create docs/todo.txt with two TODO lines, then read it and summarize"
+WITH_LLM=1 python examples/us4_file_ops_example.py
+```
+
+Expected output:
+- LLM emits a tool call for `file_ops`
+- tool performs sandboxed operation and returns structured output
+- LLM synthesises a final response from tool output
+
+### Troubleshooting
+
+If you get `path escapes sandbox root`:
+- use relative paths (for example `docs/todo.txt`)
+- avoid traversal patterns like `../`
+
+If you get `file not found`:
+- ensure a write/create step runs before read/delete
+
+If Mode 2 fails with `Connection error`:
+- ensure `LITELLM_BASE_URL` is `http://localhost:4000/v1`
+- verify LiteLLM health with `curl -s http://localhost:4000/health`
+
