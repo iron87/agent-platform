@@ -15,7 +15,83 @@ Architecture diagram: [docs/architecture.md](docs/architecture.md)
 - Isolate client workloads in a multi-tenant architecture.
 - Trace, inspect, and debug executions.
 
-Current repository status: foundational runtime and US1-US2 workflows are implemented.
+Current repository status: foundational runtime (Phases 1-2) and US1-US5 core workflows are implemented. Tools implementation (T044-T047) in progress.
+
+## Features & Capabilities
+
+### ✅ Implemented Features
+
+**Core Platform**
+- One-command bootstrap from fresh Docker host (`bash infra/bootstrap.sh`)
+- Health probes for all dependencies (Postgres, Redis, Qdrant)
+- TLS-terminated reverse proxy (Caddy)
+- Structured JSON logging across all services
+
+**API & Authentication**
+- FastAPI service with X-API-Key authentication per client
+- Multi-tenant isolation via namespace scoping
+- Health endpoint (`GET /health`)
+
+**Agent Execution**
+- **Synchronous invocation** — `POST /api/v1/run` with immediate response
+- **Conversational sessions** — per-session TTL-based memory and turn history
+- **Async job submission** — long-running tasks with polling/status retrieval
+- Session-aware execution with context preservation across turns
+- Full trace propagation and correlation IDs
+
+**LLM Integration**
+- LiteLLM proxy for multi-provider routing (OpenAI, Anthropic, etc.)
+- Alias-based model calls (`default`, `fast`, `embedding`)
+- Automatic provider fallback on failure
+- Budget tracking and rate limiting per alias
+
+**Tools** (Agent Capabilities)
+- ✅ **Web Search** — DuckDuckGo Instant Answer API (encyclopedia-style results)
+- ✅ **Code Execution** — sandboxed Python subprocess with timeout + resource limits
+- 🚧 **REST Caller** — HTTP requests with headers, auth, timeout handling (in progress)
+- 🚧 **File Operations** — read/write files in isolated directory (in progress)
+- Tool allowlist per agent definition
+
+**Memory & Context**
+- Redis-backed session store with automatic TTL refresh
+- Semantic memory via Mem0 + Qdrant vector database
+- Per-client memory isolation
+
+**Observability**
+- Langfuse v3 integration for LLM tracing
+- Full trace tree: inputs, LLM calls, tool calls, outputs, latencies
+- Trace ID correlation across requests
+- Graceful degradation if observability unavailable
+
+**Policy & Security**
+- Per-client NeMo Guardrails enforcement (hot-reloadable, <30s propagation)
+- Response redaction and content blocking
+- Injection detection
+- Secret isolation (env vars stripped from tool subprocess)
+
+**Job Processing**
+- Redis Queue (rq) for background job execution
+- Retry policy with configurable intervals
+- Job status tracking (pending, running, completed, failed)
+- Postgres as authoritative job record store
+- Graceful worker shutdown with SIGTERM
+
+### 🚧 In Progress
+
+- REST caller tool (T046)
+- File operations tool (T047)
+- Tool registry and agent-level tool allowlisting (T048)
+- Tool-agent graph loop with retry/fallback (T049)
+- Tool call observability integration (T050)
+- Full async job lifecycle and status reconciliation (T051-T057)
+
+### 📋 Planned (Future Phases)
+
+- Multi-provider fallback routing optimization (US6)
+- Trace replay capabilities (US7)
+- Advanced policy enforcement (US8)
+- HITL (Human-In-The-Loop) approval gates
+- Horizontal scaling and multi-host orchestration
 
 ## Use Cases
 
@@ -33,25 +109,42 @@ Main use cases this platform targets:
 
 ## Current Implementation Status
 
-Implemented tasks so far:
+**Phase 1 (Setup)**: ✅ Complete
+- T001-T008: Project scaffolding, Docker Compose stack, bootstrap automation, Caddy TLS
 
-- T001: Python project metadata and dependency groups in pyproject.toml.
-- T002: Developer targets in Makefile for bootstrap, run, and test.
-- T003: Base package scaffolding for agent, api, and worker with __init__.py files.
-- T004: Documented required environment variables in infra/.env.example.
-- T005: LiteLLM alias template in infra/litellm/config.yaml.template (default, fast, embedding).
-- T006: Single-host Docker Compose stack for caddy, postgres, redis, qdrant, litellm, langfuse, clickhouse, minio, agent-api, and agent-worker.
-- T007: Bootstrap script for secret generation, startup, and dependency wait logic.
-- T008: Caddy reverse proxy configuration with internal TLS and agent-api routing.
+**Phase 2 (Foundations)**: ✅ Complete
+- T009-T023: Config loader, logging, database schema, FastAPI app, LangGraph state, LiteLLM wrapper, Redis session store, Mem0 semantic memory, policy registry, Langfuse tracing, rq queue, agent service orchestrator
+
+**Phase 3 (US1 — Bootstrap)**: ✅ Complete
+- T024-T030: Health checks, bootstrap idempotency, startup summary, docker healthchecks, quickstart guide
+
+**Phase 4 (US2 — Sync Invocation)**: ✅ Complete
+- T031-T037: Run request/response schemas, sync route handler, agent definition lookup, trace propagation, route registration, auth enforcement
+
+**Phase 5 (US3 — Conversational Sessions)**: ✅ Complete
+- T038-T043: Session turn serialization, session history (load/append/TTL), conversational graph execution, session-aware service branching, session validation, tenant-isolated session keys
+
+**Phase 6 (US4 — Tool-Using Agent)**: 🚧 In Progress
+- ✅ T044: Web search tool wrapper (`agent/tools/web_search.py`)
+- ✅ T045: Code execution tool wrapper (`agent/tools/code_exec.py`) — sandboxed subprocess, timeout, output capture
+- ⏳ T046: REST caller tool wrapper (in progress)
+- ⏳ T047: File operations tool wrapper (planned)
+- ⏳ T048-T050: Tool registry, tool-agent graph loop, observability integration
+
+**Phase 7 (US5 — Async Jobs)**: 🚧 In Progress
+- ✅ T055: Async enqueue path with retry policy
+- ⏳ T051-T057: Job schemas, handlers, repository CRUD, worker task runner, status reconciliation
 
 ## How To Use
 
 ### Runnable Examples
 
 - Examples index: [examples/README.md](examples/README.md)
-- US2 sync invoke script: [examples/us2_sync_example.py](examples/us2_sync_example.py)
-- US2 seed/setup helper: [examples/us2_seed_dev.sh](examples/us2_seed_dev.sh)
-- US3 session invoke script: [examples/us3_session_example.py](examples/us3_session_example.py)
+- **US2** (sync invocation): [examples/us2_sync_example.py](examples/us2_sync_example.py) + [examples/us2_seed_dev.sh](examples/us2_seed_dev.sh)
+- **US3** (conversational sessions): [examples/us3_session_example.py](examples/us3_session_example.py)
+- **US4** (tool-using agent):
+  - Web search: [examples/us4_web_search_example.py](examples/us4_web_search_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
+  - Code execution: [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
 
 ### Prerequisites
 

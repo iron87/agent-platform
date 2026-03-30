@@ -163,3 +163,65 @@ If Mode 2 fails with `HTTP 401`:
 
 If Mode 2 fails with `ConnectionRefusedError`:
 - make sure the stack is running: `bash infra/bootstrap-light.sh`
+
+## US4 - Code Execution Tool
+
+Files:
+- `examples/us4_code_exec_example.py`: runs Python code in two modes — tool-only (default) or full LLM loop (`WITH_LLM=1`).
+
+The tool executes Python code in an **isolated subprocess** with:
+- Timeout enforcement (default 30s)
+- Output capture and truncation (default 10KB)
+- Secret isolation (API keys stripped from subprocess environment)
+- Full error visibility (stdout + stderr + exit code)
+
+⚠️ **Safety note**: Code execution is sandboxed but not bulletproof. It's intended for trusted code (LLM-generated with guardrails, not user-supplied arbitrary code).
+
+### Mode 1 — Tool only (no LLM required)
+
+```bash
+export CODE_TO_EXECUTE="import math; print(f'Pi = {math.pi}')"
+export CODE_EXEC_TIMEOUT_SECONDS=10           # optional, default 30
+export CODE_EXEC_MAX_OUTPUT_BYTES=10240       # optional, default 10KB
+python examples/us4_code_exec_example.py
+```
+
+Expected output:
+- `Execution succeeded` with exit code 0 if code ran without errors.
+- `=== STDOUT ===` section with the code's output.
+- `=== STDERR ===` section if there were warnings/errors (empty if clean).
+- Execution time in milliseconds.
+
+### Mode 2 — Full LLM loop
+
+Requires LiteLLM running and a registered API key (same setup as web_search Mode 2).
+
+```bash
+export LITELLM_BASE_URL="http://localhost:4000"
+export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d'=' -f2-)"  # Use master key locally
+export CODE_TASK="Write code to calculate the sum of the first 10 square numbers and print it"
+WITH_LLM=1 python examples/us4_code_exec_example.py
+```
+
+Expected output:
+- LLM generates Python code for the task.
+- Tool executes the code in a subprocess.
+- LLM receives the execution result and summarizes it.
+
+### Troubleshooting
+
+If you get `code execution failed: code must not be blank`:
+- verify `CODE_TO_EXECUTE` is set and not empty.
+
+If you get `code execution failed: code execution timed out`:
+- the code is taking longer than `CODE_EXEC_TIMEOUT_SECONDS`.
+- increase the timeout: `export CODE_EXEC_TIMEOUT_SECONDS=60`
+- or optimize the code to run faster.
+
+If you get `Execution succeeded` but with unexpected output:
+- check the `=== STDERR ===` section for warnings from the Python interpreter.
+- ensure imports are valid (only stdlib + pre-installed packages available in subprocess).
+
+If Mode 2 fails with `HTTP 401`:
+- use the master key as shown above (locally recommended), or register the virtual key as documented in [LiteLLM token setup](#litellm-token-setup).
+

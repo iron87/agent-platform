@@ -112,7 +112,7 @@
 ### Implementation for User Story 4
 
 - [X] T044 [P] [US4] Implement web search tool wrapper in agent/tools/web_search.py
-- [ ] T045 [P] [US4] Implement sandboxed code execution tool wrapper in agent/tools/code_exec.py
+- [X] T045 [P] [US4] Implement sandboxed code execution tool wrapper in agent/tools/code_exec.py
 - [ ] T046 [P] [US4] Implement REST caller tool wrapper with timeout handling in agent/tools/rest_caller.py
 - [ ] T047 [P] [US4] Implement sandboxed file operations tool wrapper in agent/tools/file_ops.py
 - [ ] T048 [US4] Implement tool registry + allowlist by agent definition in agent/tools/__init__.py

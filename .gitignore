@@ -32,3 +32,6 @@ Thumbs.db
 
 # Node defaults for mixed repos
 node_modules/
+
+#blog
+docs/blog/
