@@ -225,3 +225,52 @@ If you get `Execution succeeded` but with unexpected output:
 If Mode 2 fails with `HTTP 401`:
 - use the master key as shown above (locally recommended), or register the virtual key as documented in [LiteLLM token setup](#litellm-token-setup).
 
+## US4 - REST Caller Tool
+
+Files:
+- `examples/us4_rest_caller_example.py`: calls HTTP APIs in two modes — tool-only (default) or full LLM loop (`WITH_LLM=1`).
+
+The tool supports `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and includes timeout handling + body truncation protection.
+
+### Mode 1 — Tool only (no LLM required)
+
+```bash
+export REST_URL="http://localhost:8000/health"
+export REST_METHOD="GET"                    # optional, default GET
+export REST_TIMEOUT_SECONDS=10               # optional, default 10
+export REST_MAX_BODY_BYTES=4096              # optional, default 4096
+python examples/us4_rest_caller_example.py
+```
+
+Expected output:
+- HTTP status and latency (e.g. `HTTP 200 in 35ms`)
+- method + URL used
+- response body preview
+
+### Mode 2 — Full LLM loop
+
+```bash
+export LITELLM_BASE_URL="http://localhost:4000/v1"
+export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d'=' -f2-)"
+export REST_TASK="Call GET http://localhost:8000/health and summarize whether dependencies are healthy."
+WITH_LLM=1 python examples/us4_rest_caller_example.py
+```
+
+Expected output:
+- LLM emits a tool call for `rest_caller`
+- tool executes the HTTP call and returns status/body
+- LLM synthesises a final summary
+
+### Troubleshooting
+
+If you get `REST call timed out`:
+- increase `REST_TIMEOUT_SECONDS`
+- verify target endpoint is reachable
+
+If you get `url must be absolute and start with http:// or https://`:
+- provide full URL (e.g. `http://localhost:8000/health`)
+
+If Mode 2 fails with `Connection error`:
+- ensure `LITELLM_BASE_URL` is `http://localhost:4000/v1` when running from host terminal
+- verify LiteLLM health: `curl -s http://localhost:4000/health`
+

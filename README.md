@@ -127,7 +127,7 @@ Main use cases this platform targets:
 **Phase 6 (US4 — Tool-Using Agent)**: 🚧 In Progress
 - ✅ T044: Web search tool wrapper (`agent/tools/web_search.py`)
 - ✅ T045: Code execution tool wrapper (`agent/tools/code_exec.py`) — sandboxed subprocess, timeout, output capture
-- ⏳ T046: REST caller tool wrapper (in progress)
+- ✅ T046: REST caller tool wrapper (`agent/tools/rest_caller.py`) — timeout handling, method allowlist, response truncation
 - ⏳ T047: File operations tool wrapper (planned)
 - ⏳ T048-T050: Tool registry, tool-agent graph loop, observability integration
 
@@ -145,6 +145,7 @@ Main use cases this platform targets:
 - **US4** (tool-using agent):
   - Web search: [examples/us4_web_search_example.py](examples/us4_web_search_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
   - Code execution: [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
+  - REST caller: [examples/us4_rest_caller_example.py](examples/us4_rest_caller_example.py) — mode 1 (tool-only) and mode 2 (with LLM loop)
 
 ### Prerequisites
 
