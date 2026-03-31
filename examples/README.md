@@ -322,3 +322,50 @@ If Mode 2 fails with `Connection error`:
 - ensure `LITELLM_BASE_URL` is `http://localhost:4000/v1`
 - verify LiteLLM health with `curl -s http://localhost:4000/health`
 
+## US4 - Tool-Agent Graph Loop + Tool Spans
+
+Files:
+- `examples/us4_tool_agent_graph_example.py`: runs the tool-agent graph in two modes:
+  - deterministic local mode (default) with a fake LLM that always calls `code_exec`
+  - LiteLLM mode (`WITH_LLM=1`) using real model/tool-calling behavior
+
+This example demonstrates:
+- per-agent tool allowlist resolution
+- tool call retries/fail handling inside the graph loop
+- tool span emission (`args`, `output`, `latency`, `error`) via observability callbacks
+
+### Mode 1 - Deterministic local run
+
+```bash
+python examples/us4_tool_agent_graph_example.py
+```
+
+Expected output:
+- `status: completed`
+- one `tool_events` entry for `code_exec`
+- one callback span payload in `Tool Spans (Observability Callback)`
+
+### Mode 2 - With LiteLLM
+
+```bash
+export LITELLM_BASE_URL="http://localhost:4000/v1"
+export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d'=' -f2-)"
+export TOOL_AGENT_TASK="Use code_exec to compute the sum of squares from 1 to 5, then answer briefly."
+WITH_LLM=1 python examples/us4_tool_agent_graph_example.py
+```
+
+Expected behavior:
+- model may choose one or more tools from allowlist
+- tool calls are executed with retry handling
+- each attempt emits a structured tool span in callback output
+
+### Troubleshooting
+
+If mode 2 fails with `Connection error`:
+- set `LITELLM_BASE_URL=http://localhost:4000/v1` from host terminal
+- confirm LiteLLM is reachable: `curl -s http://localhost:4000/health`
+
+If no tool call occurs in mode 2:
+- refine prompt to explicitly require a tool action
+- use deterministic mode to validate graph wiring independent of model behavior
+

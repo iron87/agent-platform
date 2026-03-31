@@ -49,6 +49,9 @@ class AgentState(TypedDict):
     tool_result: str | None
     """Output from tool execution; set by tool node, consumed by agent node"""
 
+    tool_events: list[dict[str, Any]] | None
+    """Structured summary of tool execution attempts for the current run."""
+
     output: str | None
     """Final model response text for the current execution."""
 
@@ -80,3 +83,8 @@ class AgentState(TypedDict):
     _llm_client: Any | None
     _model_alias: str | None
     _system_prompt: str | None
+    _agent_definition: dict[str, Any] | None
+    _tool_registry: dict[str, Any] | None
+    _trace_callbacks: list[Any] | None
+    _max_tool_steps: int | None
+    _max_tool_retries: int | None

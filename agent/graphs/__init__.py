@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph
 import structlog
 
 from agent.graphs.conversational import build_conversational_graph
+from agent.graphs.tool_agent import build_tool_agent_graph
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -25,6 +26,7 @@ logger = structlog.get_logger(__name__)
 
 _GRAPHS: dict[str, Callable[[], StateGraph]] = {
     "conversational": build_conversational_graph,
+    "tool_agent": build_tool_agent_graph,
 }
 
 

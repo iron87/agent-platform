@@ -1,19 +1,32 @@
 """Langfuse callback wiring for LangGraph and LiteLLM observability.
 
 Provides:
-- Langfuse trace initialization at execution start
-- LangGraph callback handler for tracing all node executions
-- Graceful fail-open: if Langfuse unavailable, continue without tracing
-- Trace metadata propagation (client_id, agent_id, job_id)
+ Langfuse trace initialization at execution start
+ LangGraph callback handler for tracing all node executions
+ Graceful fail-open: if Langfuse unavailable, continue without tracing
+ Trace metadata propagation (client_id, agent_id, job_id)
 """
 
 from typing import TYPE_CHECKING, Any
 import structlog
+import json
+from time import perf_counter
 
 if TYPE_CHECKING:
     from langfuse.langchain import CallbackHandler
 
 logger = structlog.get_logger(__name__)
+
+def _serialize_trace_value(value: Any, *, max_len: int = 4000) -> str:
+    """Serialize a value for tracing payloads with bounded size."""
+    try:
+        rendered = json.dumps(value, default=str)
+    except TypeError:
+        rendered = str(value)
+
+    if len(rendered) <= max_len:
+        return rendered
+    return rendered[:max_len] + "...<truncated>"
 
 
 def create_langfuse_handler(
@@ -160,6 +173,54 @@ def extract_trace_id(handler: "CallbackHandler | None") -> str | None:
     except AttributeError:
         return None
 
+def emit_tool_call_span(
+    callbacks: list[Any] | None,
+    *,
+    tool_name: str,
+    args: dict[str, Any],
+    output: Any,
+    error: str | None,
+    attempt: int,
+    started_at: float | None = None,
+) -> None:
+    """Emit tool call span data to trace callbacks and structured logs.
+
+    The callback contract is intentionally loose to support different callback
+    implementations. If a callback exposes `on_custom_event`, this function
+    publishes a `tool_call` event payload.
+    """
+    elapsed_ms = 0
+    if started_at is not None:
+        elapsed_ms = int((perf_counter() - started_at) * 1000)
+
+    payload = {
+        "tool_name": tool_name,
+        "attempt": attempt,
+        "latency_ms": elapsed_ms,
+        "args": _serialize_trace_value(args),
+        "output": _serialize_trace_value(output) if error is None else None,
+        "error": error,
+        "ok": error is None,
+    }
+
+    for callback in callbacks or []:
+        on_custom_event = getattr(callback, "on_custom_event", None)
+        if callable(on_custom_event):
+            try:
+                on_custom_event(name="tool_call", data=payload)
+            except Exception:
+                # Tracing should never break runtime execution.
+                logger.debug("tool_call_callback_failed", callback_type=type(callback).__name__)
+
+    logger.info(
+        "tool_call_span",
+        tool_name=tool_name,
+        attempt=attempt,
+        latency_ms=elapsed_ms,
+        ok=error is None,
+        error=error,
+    )
+
 
 class ExecutionTraceContext:
     """Context manager for traced execution with automatic resource cleanup.
@@ -246,6 +307,7 @@ __all__ = [
     "create_langfuse_handler",
     "inject_trace_metadata",
     "build_execution_callbacks",
+    "emit_tool_call_span",
     "extract_trace_id",
     "ExecutionTraceContext",
 ]
