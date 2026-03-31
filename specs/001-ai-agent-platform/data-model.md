@@ -6,14 +6,14 @@
 
 ## PostgreSQL Entities
 
-### `clients`
+### `tenants`
 
 Represents a tenant that has API access to the platform.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | `UUID` | PK, default `gen_random_uuid()` | Client identifier (used as namespace prefix everywhere) |
-| `name` | `TEXT` | NOT NULL | Human-readable client name |
+| `id` | `UUID` | PK, default `gen_random_uuid()` | Tenant identifier (used as namespace prefix everywhere) |
+| `name` | `TEXT` | NOT NULL | Human-readable tenant name |
 | `api_key_hash` | `TEXT` | NOT NULL, UNIQUE | bcrypt hash of the `X-API-Key` value |
 | `approval_endpoint` | `TEXT` | NULLABLE | Webhook URL for HITL approval requests |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL, default `now()` | |
@@ -51,7 +51,7 @@ Authoritative record for every agent invocation (sync and async). rq is the exec
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | `UUID` | PK | Job ID returned to caller |
-| `client_id` | `UUID` | FK → `clients.id`, NOT NULL | Tenant scope |
+| `tenant_id` | `UUID` | FK → `tenants.id`, NOT NULL | Tenant scope |
 | `agent_id` | `UUID` | FK → `agent_definitions.id`, NOT NULL | |
 | `session_id` | `TEXT` | NULLABLE | Non-null for conversational mode |
 | `input_payload` | `JSONB` | NOT NULL | Raw input as submitted by caller |
@@ -66,7 +66,7 @@ Authoritative record for every agent invocation (sync and async). rq is the exec
 | `started_at` | `TIMESTAMPTZ` | NULLABLE | |
 | `completed_at` | `TIMESTAMPTZ` | NULLABLE | |
 
-**Indexes**: `(client_id, created_at DESC)`, `(rq_job_id)`, `(status)` where `status NOT IN ('completed', 'failed')`
+**Indexes**: `(tenant_id, created_at DESC)`, `(rq_job_id)`, `(status)` where `status NOT IN ('completed', 'failed')`
 
 ---
 
@@ -78,7 +78,7 @@ An approval gate encountered mid-execution. One per `interrupt()` call.
 |--------|------|-------------|-------------|
 | `id` | `UUID` | PK | Approval request ID |
 | `job_id` | `UUID` | FK → `jobs.id`, NOT NULL | Parent execution |
-| `client_id` | `UUID` | FK → `clients.id`, NOT NULL | For auth scoping |
+| `tenant_id` | `UUID` | FK → `tenants.id`, NOT NULL | For auth scoping |
 | `tool_name` | `TEXT` | NOT NULL | Tool that triggered the gate |
 | `proposed_args` | `JSONB` | NOT NULL | Arguments the agent would pass to the tool |
 | `context_summary` | `TEXT` | NULLABLE | Brief context string from graph state |
@@ -92,13 +92,13 @@ An approval gate encountered mid-execution. One per `interrupt()` call.
 
 ---
 
-### `client_policies`
+### `tenant_policies`
 
-Per-client NeMo Guardrails configuration metadata. The actual Colang files live on disk at `agent/guardrails/{client_id}/`; this table tracks the active version and reload status.
+Per-tenant NeMo Guardrails configuration metadata. The actual Colang files live on disk at `agent/guardrails/{tenant_id}/`; this table tracks the active version and reload status.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `client_id` | `UUID` | PK, FK → `clients.id` | One policy record per client |
+| `tenant_id` | `UUID` | PK, FK → `tenants.id` | One policy record per tenant |
 | `version` | `INTEGER` | NOT NULL, default `1` | Incremented on each config update |
 | `pii_rules_summary` | `JSONB` | NULLABLE | Human-readable summary of active PII rules (no raw patterns) |
 | `blocked_categories` | `TEXT[]` | NOT NULL, default `{}` | Content categories configured as blocked |
@@ -115,8 +115,8 @@ Per-client NeMo Guardrails configuration metadata. The actual Colang files live 
 
 | Key pattern | Type | TTL | Value |
 |-------------|------|-----|-------|
-| `{client_id}:session:{session_id}:turns` | `LIST` | Sliding `SESSION_TTL_SECONDS` (default 86400 s) | JSON-serialised turn objects |
-| `{client_id}:session:{session_id}:meta` | `HASH` | Same sliding TTL | `agent_id`, `created_at`, `last_active_at` |
+| `{tenant_id}:session:{session_id}:turns` | `LIST` | Sliding `SESSION_TTL_SECONDS` (default 86400 s) | JSON-serialised turn objects |
+| `{tenant_id}:session:{session_id}:meta` | `HASH` | Same sliding TTL | `agent_id`, `created_at`, `last_active_at` |
 
 **Turn object shape**:
 ```json
@@ -139,7 +139,7 @@ Per-client NeMo Guardrails configuration metadata. The actual Colang files live 
 
 | Collection | Naming | Isolation | Managed by |
 |------------|--------|-----------|------------|
-| `{client_id}_memory` | Per client | Hard collection boundary | Mem0 library |
+| `{tenant_id}_memory` | Per tenant | Hard collection boundary | Mem0 library |
 
 **Payload schema** (stored per vector by Mem0):
 ```json
@@ -163,7 +163,7 @@ Per-client NeMo Guardrails configuration metadata. The actual Colang files live 
 ```python
 @dataclass(frozen=True)
 class MemoryScope:
-    client_id: str
+    tenant_id: str
     user_id: str | None = None
     agent_id: str | None = None
     run_id: str | None = None
@@ -202,7 +202,7 @@ from langgraph.graph.message import add_messages
 
 class AgentState(TypedDict):
     # Input
-    client_id: str
+    tenant_id: str
     job_id: str
     session_id: str | None
     input: str

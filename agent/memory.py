@@ -3,7 +3,7 @@
 Provides a protocol-based interface for semantic memory operations (upsert, search, delete)
 with a Mem0 implementation that handles chunking, deduplication, and embedding.
 
-Per-tenant isolation: one Qdrant collection per client (`{client_id}_memory`).
+Per-tenant isolation: one Qdrant collection per tenant (`{tenant_id}_memory`).
 """
 
 from dataclasses import dataclass
@@ -21,17 +21,17 @@ class MemoryScope:
     All fields are optional; only populated fields are used for filtering.
 
     Attributes:
-        client_id: Tenant identifier (required for multi-tenant isolation)
-        user_id: Optional user-level scoping within a client
+        tenant_id: Tenant identifier (required for multi-tenant isolation)
+        user_id: Optional user-level scoping within a tenant
         agent_id: Optional agent-level scoping (e.g., per-agent tool memory)
         run_id: Optional run/execution-level scoping (e.g., per-job memory)
     """
 
-    client_id: str
+    tenant_id: str
     """Required: tenant namespace"""
 
     user_id: str | None = None
-    """Optional: user within the client"""
+    """Optional: user within the tenant"""
 
     agent_id: str | None = None
     """Optional: specific agent context"""
@@ -148,19 +148,19 @@ class Mem0MemoryStore:
     """Mem0-backed semantic memory implementation.
 
     Features:
-    - Per-client Qdrant collections (`{client_id}_memory`)
+    - Per-tenant Qdrant collections (`{tenant_id}_memory`)
     - Automatic embedding and chunking via Mem0
-    - Lazy initialization and caching per client
+    - Lazy initialization and caching per tenant
     - Graceful degradation if Mem0/Qdrant unavailable
 
     Usage:
         store = Mem0MemoryStore(settings)
         memory_id = await store.upsert_fact(
-            scope=MemoryScope(client_id="tenant-1", user_id="user-42"),
+            scope=MemoryScope(tenant_id="tenant-1", user_id="user-42"),
             text="Customer prefers weekly reports on Fridays.",
         )
         results = await store.search(
-            scope=MemoryScope(client_id="tenant-1"),
+            scope=MemoryScope(tenant_id="tenant-1"),
             query="report frequency preferences",
             limit=3,
         )
@@ -173,7 +173,7 @@ class Mem0MemoryStore:
             settings: API settings (must have LITELLM_BASE_URL, LITELLM_API_KEY, QDRANT_HOST, QDRANT_PORT)
 
         Notes:
-            - Mem0 instances are created lazily per client on first use
+            - Mem0 instances are created lazily per tenant on first use
             - Requires `pip install mem0ai`
         """
         self.settings = settings
@@ -185,14 +185,14 @@ class Mem0MemoryStore:
             qdrant_port=settings.QDRANT_PORT,
         )
 
-    def _get_mem0_config(self, client_id: str) -> dict[str, Any]:
-        """Build Mem0 configuration for a specific client.
+    def _get_mem0_config(self, tenant_id: str) -> dict[str, Any]:
+        """Build Mem0 configuration for a specific tenant.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
 
         Returns:
-            Dictionary of Mem0 config with per-client collection name
+            Dictionary of Mem0 config with per-tenant collection name
         """
         return {
             "llm": {
@@ -217,7 +217,7 @@ class Mem0MemoryStore:
             "vector_store": {
                 "provider": "qdrant",
                 "config": {
-                    "collection_name": f"{client_id}_memory",
+                    "collection_name": f"{tenant_id}_memory",
                     "host": self.settings.QDRANT_HOST,
                     "port": self.settings.QDRANT_PORT,
                     "api_key": self.settings.QDRANT_API_KEY or None,
@@ -225,21 +225,21 @@ class Mem0MemoryStore:
             },
         }
 
-    def _get_or_create_mem0(self, client_id: str) -> Any:
-        """Get or lazily create a Mem0 instance for a client.
+    def _get_or_create_mem0(self, tenant_id: str) -> Any:
+        """Get or lazily create a Mem0 instance for a tenant.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
 
         Returns:
-            Mem0 Memory instance for this client
+            Mem0 Memory instance for this tenant
 
         Raises:
             ImportError: If mem0ai is not installed
             Exception: If Mem0 initialization fails (Qdrant unreachable, etc.)
         """
-        if client_id in self._mem0_instances:
-            return self._mem0_instances[client_id]
+        if tenant_id in self._mem0_instances:
+            return self._mem0_instances[tenant_id]
 
         try:
             from mem0 import Memory
@@ -249,14 +249,14 @@ class Mem0MemoryStore:
                 "Run: pip install mem0ai"
             )
 
-        config = self._get_mem0_config(client_id)
-        mem0 = Memory.from_config(config, user_id=client_id)
-        self._mem0_instances[client_id] = mem0
+        config = self._get_mem0_config(tenant_id)
+        mem0 = Memory.from_config(config, user_id=tenant_id)
+        self._mem0_instances[tenant_id] = mem0
 
         logger.info(
             "mem0_instance_created",
-            client_id=client_id,
-            collection=f"{client_id}_memory",
+            tenant_id=tenant_id,
+            collection=f"{tenant_id}_memory",
         )
 
         return mem0
@@ -271,28 +271,28 @@ class Mem0MemoryStore:
         """Upsert a semantic fact via Mem0.
 
         Args:
-            scope: MemoryScope with client_id (required)
+            scope: MemoryScope with tenant_id (required)
             text: Fact to store (1-4096 chars)
             metadata: Optional metadata dict
 
         Returns:
             ID of the stored fact
         """
-        if not scope.client_id:
-            raise ValueError("scope.client_id is required for memory operations")
+        if not scope.tenant_id:
+            raise ValueError("scope.tenant_id is required for memory operations")
 
-        mem0 = self._get_or_create_mem0(scope.client_id)
+        mem0 = self._get_or_create_mem0(scope.tenant_id)
 
         # Mem0.add() returns the message ID
         msg_id = mem0.add(
             messages=text,
             metadata=metadata or {},
-            user_id=scope.user_id or scope.client_id,
+            user_id=scope.user_id or scope.tenant_id,
         )
 
         logger.debug(
             "memory_fact_upserted",
-            client_id=scope.client_id,
+            tenant_id=scope.tenant_id,
             memory_id=msg_id,
             text_len=len(text),
         )
@@ -309,22 +309,22 @@ class Mem0MemoryStore:
         """Search for similar facts via Mem0 + Qdrant.
 
         Args:
-            scope: MemoryScope with client_id (required)
+            scope: MemoryScope with tenant_id (required)
             query: Search query
             limit: Max results to return
 
         Returns:
             List of MemoryRecord sorted by similarity
         """
-        if not scope.client_id:
-            raise ValueError("scope.client_id is required for memory operations")
+        if not scope.tenant_id:
+            raise ValueError("scope.tenant_id is required for memory operations")
 
-        mem0 = self._get_or_create_mem0(scope.client_id)
+        mem0 = self._get_or_create_mem0(scope.tenant_id)
 
         # Mem0.search() returns list of dicts with 'id', 'text', 'score', etc.
         results = mem0.search(
             query=query,
-            user_id=scope.user_id or scope.client_id,
+            user_id=scope.user_id or scope.tenant_id,
             limit=limit,
         )
 
@@ -340,7 +340,7 @@ class Mem0MemoryStore:
 
         logger.debug(
             "memory_search_completed",
-            client_id=scope.client_id,
+            tenant_id=scope.tenant_id,
             query_len=len(query),
             result_count=len(records),
         )
@@ -356,20 +356,20 @@ class Mem0MemoryStore:
         """Delete a fact by ID.
 
         Args:
-            scope: MemoryScope with client_id (required)
+            scope: MemoryScope with tenant_id (required)
             memory_id: ID of fact to delete
         """
-        if not scope.client_id:
-            raise ValueError("scope.client_id is required for memory operations")
+        if not scope.tenant_id:
+            raise ValueError("scope.tenant_id is required for memory operations")
 
-        mem0 = self._get_or_create_mem0(scope.client_id)
+        mem0 = self._get_or_create_mem0(scope.tenant_id)
 
         # Mem0.delete() takes the message ID
         mem0.delete(msg_id=memory_id)
 
         logger.debug(
             "memory_fact_deleted",
-            client_id=scope.client_id,
+            tenant_id=scope.tenant_id,
             memory_id=memory_id,
         )
 
@@ -380,20 +380,20 @@ class Mem0MemoryStore:
     ) -> int:
         """Delete all facts in a scope (dangerous operation).
 
-        Clears the entire collection for the client if scope is just client_id.
+        Clears the entire collection for the tenant if scope is just tenant_id.
 
         Args:
-            scope: MemoryScope; typically just client_id
+            scope: MemoryScope; typically just tenant_id
 
         Returns:
             Count of deleted facts (0 if not supported by backend)
         """
-        if not scope.client_id:
-            raise ValueError("scope.client_id is required for memory operations")
+        if not scope.tenant_id:
+            raise ValueError("scope.tenant_id is required for memory operations")
 
         logger.warning(
             "memory_scope_deletion_requested",
-            client_id=scope.client_id,
+            tenant_id=scope.tenant_id,
             scope_user_id=scope.user_id,
         )
 

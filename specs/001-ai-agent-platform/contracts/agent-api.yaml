@@ -5,7 +5,7 @@ info:
   description: |
     External API for the 2brain AI Agent Platform.
     All endpoints except GET /health require `X-API-Key` authentication.
-    The key is scoped to a single client tenant — it must match a record in `clients.api_key_hash`.
+    The key is scoped to a single tenant — it must match a record in `tenants.api_key_hash`.
 
 servers:
   - url: https://{host}/api/v1

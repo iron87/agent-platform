@@ -22,14 +22,16 @@ if [[ -z "${AGENT_API_KEY:-}" ]]; then
 fi
 
 echo "Applying base schema..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres \
-  sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-  < "$ROOT_DIR/infra/migrations/001_initial_schema.sql" >/dev/null
+for migration in "$ROOT_DIR"/infra/migrations/*.sql; do
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres \
+    sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+    < "$migration" >/dev/null
+done
 
-echo "Seeding dev client + agent definition for US2..."
+echo "Seeding dev tenant + agent definition for US2..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T postgres \
   sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<SQL
-INSERT INTO clients (id, name, api_key_hash, approval_endpoint, is_active)
+INSERT INTO tenants (id, name, api_key_hash, approval_endpoint, is_active)
 VALUES (
   '11111111-1111-1111-1111-111111111111',
   'Acme Dev',
@@ -69,7 +71,7 @@ ON CONFLICT (id) DO UPDATE SET
 SQL
 
 echo "US2 dev seed completed."
-echo "Client ID: 11111111-1111-1111-1111-111111111111"
+echo "Tenant ID: 11111111-1111-1111-1111-111111111111"
 echo "Agent ID:  00000000-0000-0000-0000-000000000001"
 echo "Use this API key for examples: $AGENT_API_KEY"
 echo "Export for examples:"

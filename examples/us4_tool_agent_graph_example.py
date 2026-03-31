@@ -62,7 +62,7 @@ async def _run_local_deterministic() -> int:
     tools = build_tool_registry()
 
     state = {
-        "client_id": "demo-client",
+        "tenant_id": "demo-tenant",
         "job_id": "demo-job",
         "session_id": None,
         "input": "Compute the sum of squares from 1 to 5.",
@@ -121,7 +121,7 @@ async def _run_with_llm() -> int:
     tools = build_tool_registry()
 
     state = {
-        "client_id": "demo-client",
+        "tenant_id": "demo-tenant",
         "job_id": "demo-job-llm",
         "session_id": None,
         "input": prompt,

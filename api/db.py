@@ -16,8 +16,8 @@ from api.config import Settings, get_settings
 
 metadata = MetaData()
 
-clients_table = Table(
-    "clients",
+tenants_table = Table(
+    "tenants",
     metadata,
     Column("id", Uuid(as_uuid=True), primary_key=True),
     Column("name", Text, nullable=False),
@@ -48,7 +48,7 @@ jobs_table = Table(
     "jobs",
     metadata,
     Column("id", Uuid(as_uuid=True), primary_key=True),
-    Column("client_id", Uuid(as_uuid=True), ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False),
+    Column("tenant_id", Uuid(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False),
     Column("agent_id", Uuid(as_uuid=True), ForeignKey("agent_definitions.id", ondelete="RESTRICT"), nullable=False),
     Column("session_id", Text),
     Column("input_payload", JSONB, nullable=False),
@@ -69,7 +69,7 @@ approval_requests_table = Table(
     metadata,
     Column("id", Uuid(as_uuid=True), primary_key=True),
     Column("job_id", Uuid(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False),
-    Column("client_id", Uuid(as_uuid=True), ForeignKey("clients.id", ondelete="RESTRICT"), nullable=False),
+    Column("tenant_id", Uuid(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False),
     Column("tool_name", Text, nullable=False),
     Column("proposed_args", JSONB, nullable=False),
     Column("context_summary", Text),
@@ -80,10 +80,10 @@ approval_requests_table = Table(
     Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
 )
 
-client_policies_table = Table(
-    "client_policies",
+tenant_policies_table = Table(
+    "tenant_policies",
     metadata,
-    Column("client_id", Uuid(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), primary_key=True),
+    Column("tenant_id", Uuid(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True),
     Column("version", Integer, nullable=False, server_default="1"),
     Column("pii_rules_summary", JSONB),
     Column("blocked_categories", ARRAY(Text), nullable=False),
@@ -134,13 +134,13 @@ class Repository:
         return [dict(row) for row in rows]
 
 
-class ClientsRepository(Repository):
-    async def list_active_clients(self) -> list[Mapping[str, Any]]:
-        statement = select(clients_table).where(clients_table.c.is_active.is_(True))
+class TenantsRepository(Repository):
+    async def list_active_tenants(self) -> list[Mapping[str, Any]]:
+        statement = select(tenants_table).where(tenants_table.c.is_active.is_(True))
         return await self.fetch_all(statement)
 
-    async def get_by_id(self, client_id: UUID) -> Mapping[str, Any] | None:
-        statement = select(clients_table).where(clients_table.c.id == client_id)
+    async def get_by_id(self, tenant_id: UUID) -> Mapping[str, Any] | None:
+        statement = select(tenants_table).where(tenants_table.c.id == tenant_id)
         return await self.fetch_one(statement)
 
 
@@ -157,7 +157,7 @@ class JobsRepository(Repository):
 
     async def create(self, values: Mapping[str, Any]) -> str:
         normalized_values = dict(values)
-        for key in ("id", "client_id", "agent_id"):
+        for key in ("id", "tenant_id", "agent_id"):
             if key in normalized_values:
                 normalized_values[key] = UUID(str(normalized_values[key]))
 
@@ -183,7 +183,7 @@ class ApprovalRequestsRepository(Repository):
         return await self.fetch_one(statement)
 
 
-class ClientPoliciesRepository(Repository):
-    async def get_by_client_id(self, client_id: UUID) -> Mapping[str, Any] | None:
-        statement = select(client_policies_table).where(client_policies_table.c.client_id == client_id)
+class TenantPoliciesRepository(Repository):
+    async def get_by_tenant_id(self, tenant_id: UUID) -> Mapping[str, Any] | None:
+        statement = select(tenant_policies_table).where(tenant_policies_table.c.tenant_id == tenant_id)
         return await self.fetch_one(statement)

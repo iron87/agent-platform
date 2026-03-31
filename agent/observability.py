@@ -4,7 +4,7 @@ Provides:
  Langfuse trace initialization at execution start
  LangGraph callback handler for tracing all node executions
  Graceful fail-open: if Langfuse unavailable, continue without tracing
- Trace metadata propagation (client_id, agent_id, job_id)
+ Trace metadata propagation (tenant_id, agent_id, job_id)
 """
 
 from typing import TYPE_CHECKING, Any
@@ -82,7 +82,7 @@ def create_langfuse_handler(
 def inject_trace_metadata(
     config: dict[str, Any],
     *,
-    client_id: str,
+    tenant_id: str,
     agent_id: str,
     job_id: str,
     session_id: str | None = None,
@@ -94,7 +94,7 @@ def inject_trace_metadata(
 
     Args:
         config: LangGraph ainvoke config dict
-        client_id: Tenant identifier
+        tenant_id: Tenant identifier
         agent_id: Agent definition UUID
         job_id: Job/execution record UUID
         session_id: Optional session identifier for conversational mode
@@ -104,13 +104,13 @@ def inject_trace_metadata(
 
     Notes:
         - Langfuse extracts metadata from config["metadata"] if present
-        - Tag format supports hierarchical organization (e.g., "client:tenant-1")
+        - Tag format supports hierarchical organization (e.g., "tenant:team-1")
     """
     if "metadata" not in config:
         config["metadata"] = {}
 
     config["metadata"].update({
-        "client_id": client_id,
+        "tenant_id": tenant_id,
         "agent_id": agent_id,
         "job_id": job_id,
         "session_id": session_id or "none",
@@ -120,14 +120,14 @@ def inject_trace_metadata(
         config["tags"] = []
 
     config["tags"].extend([
-        f"client:{client_id}",
+        f"tenant:{tenant_id}",
         f"agent:{agent_id}",
         f"job:{job_id}",
     ])
 
     logger.debug(
         "trace_metadata_injected",
-        client_id=client_id,
+        tenant_id=tenant_id,
         agent_id=agent_id,
         job_id=job_id,
     )
@@ -240,7 +240,7 @@ class ExecutionTraceContext:
         self,
         settings: Any,
         *,
-        client_id: str,
+        tenant_id: str,
         agent_id: str,
         job_id: str,
         session_id: str | None = None,
@@ -249,13 +249,13 @@ class ExecutionTraceContext:
 
         Args:
             settings: Configuration object with Langfuse settings
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             agent_id: Agent definition UUID
             job_id: Execution record UUID
             session_id: Optional session ID for conversational mode
         """
         self.settings = settings
-        self.client_id = client_id
+        self.tenant_id = tenant_id
         self.agent_id = agent_id
         self.job_id = job_id
         self.session_id = session_id
@@ -273,7 +273,7 @@ class ExecutionTraceContext:
 
         inject_trace_metadata(
             self.config,
-            client_id=self.client_id,
+            tenant_id=self.tenant_id,
             agent_id=self.agent_id,
             job_id=self.job_id,
             session_id=self.session_id,
@@ -290,7 +290,7 @@ class ExecutionTraceContext:
             logger.error(
                 "execution_trace_context_error",
                 error_type=exc_type.__name__,
-                client_id=self.client_id,
+                tenant_id=self.tenant_id,
                 job_id=self.job_id,
             )
 
@@ -299,7 +299,7 @@ class ExecutionTraceContext:
         logger.debug(
             "execution_trace_context_closed",
             trace_id=self.trace_id,
-            client_id=self.client_id,
+            tenant_id=self.tenant_id,
         )
 
 

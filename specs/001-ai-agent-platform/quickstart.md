@@ -4,7 +4,7 @@
 
 End-to-end walk-through for two audiences:
 - **Agency engineers** — bootstrapping a new instance and verifying it works.
-- **Client system integrators** — invoking an agent for the first time.
+- **Tenant system integrators** — invoking an agent for the first time.
 
 ---
 
@@ -122,9 +122,9 @@ Open the Langfuse UI at `http://localhost:3000`, find the trace by its `trace_id
 
 ---
 
-## Part 2 — Setting Up a New Client
+## Part 2 — Setting Up a New Tenant
 
-### Step 1 — Create a client record (platform admin)
+### Step 1 — Create a tenant record (platform admin)
 
 ```bash
 # Inside the agent-api container (or via psql directly)
@@ -133,13 +133,15 @@ docker compose exec agent-api python -m api.cli create-client \
   --approval-endpoint "https://acme.example.com/hooks/approvals"
 ```
 
+The command name is still `create-client` for backward compatibility; it provisions a tenant record.
+
 Output:
 ```
-client_id:   a1b2c3d4-...
+tenant_id:   a1b2c3d4-...
 api_key:     sk-acme-<generated>   ← give this to Acme's team
 ```
 
-### Step 2 — (Optional) Configure a client policy
+### Step 2 — (Optional) Configure a tenant policy
 
 Create the policy directory and a Colang config file:
 
@@ -164,7 +166,7 @@ curl -s http://localhost:8000/health | jq .
 
 ---
 
-## Part 3 — Client System Integrator: First API Call
+## Part 3 — Tenant Integrator: First API Call
 
 ### Authentication
 
@@ -188,9 +190,9 @@ curl -s -X POST https://your-platform-host/api/v1/run \
   ### US2 practical example — support triage use case (real runnable code)
 
   Use case:
-  - A client system sends a ticket text to the platform.
+  - A tenant system sends a ticket text to the platform.
   - The synchronous `/run` endpoint returns a triage draft and a `trace_id`.
-  - The client stores `trace_id` for observability/audit.
+  - The tenant integrator stores `trace_id` for observability/audit.
 
   Runnable Python example:
 

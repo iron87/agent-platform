@@ -59,14 +59,14 @@ async def run_agent(
 	service = _build_agent_service(session, settings)
 
 	execution_request = ExecutionRequest(
-		client_id=str(tenant.client_id),
+		tenant_id=str(tenant.tenant_id),
 		agent_id=str(payload.agent_id),
 		input=payload.input,
 		mode=ExecutionMode.SESSION if payload.session_id else ExecutionMode.SYNC,
 		session_id=payload.session_id,
 		metadata={
 			**payload.metadata,
-			"tenant_id": str(tenant.client_id),
+			"tenant_id": str(tenant.tenant_id),
 		},
 	)
 

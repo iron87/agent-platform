@@ -5,8 +5,8 @@ sliding window refresh. Sessions store conversational turns (message history)
 for reuse across multiple invocations in the same conversation context.
 
 Key patterns:
-  - Turns (message history): {client_id}:session:{session_id}:turns
-  - Metadata: {client_id}:session:{session_id}:meta
+    - Turns (message history): {tenant_id}:session:{session_id}:turns
+    - Metadata: {tenant_id}:session:{session_id}:meta
   
 TTL is a sliding window: every access resets the expiration to +SESSION_TTL_SECONDS.
 """
@@ -59,7 +59,7 @@ class RedisSessionStore:
     """Redis-backed conversational session store.
 
     Features:
-      - Multi-tenant isolation (client_id namespace)
+    - Multi-tenant isolation (tenant_id namespace)
       - Automatic TTL with sliding window refresh
       - Atomic turn append with optimistic locking
       - Metadata tracking (agent_id, timestamps)
@@ -70,20 +70,20 @@ class RedisSessionStore:
         
         # Start a new session
         await store.create_session(
-            client_id="tenant-1",
+            tenant_id="tenant-1",
             session_id="conv-123",
             agent_id="report-gen",
         )
         
         # Append turns
         await store.append_turn(
-            client_id="tenant-1",
+            tenant_id="tenant-1",
             session_id="conv-123",
             turn=SessionTurn(role="user", content="...", timestamp="..."),
         )
         
         # Load full history
-        turns = await store.load_turns(client_id="tenant-1", session_id="conv-123")
+        turns = await store.load_turns(tenant_id="tenant-1", session_id="conv-123")
     """
 
     def __init__(
@@ -113,46 +113,46 @@ class RedisSessionStore:
         )
 
     @staticmethod
-    def _validate_namespace_inputs(client_id: str, session_id: str) -> None:
+    def _validate_namespace_inputs(tenant_id: str, session_id: str) -> None:
         """Validate tenant/session IDs used to compose Redis keys.
 
         Prevents malformed keys and enforces tenant-isolated namespace usage.
         """
-        if not client_id or ":" in client_id:
-            raise ValueError("client_id must be non-empty and must not contain ':'")
+        if not tenant_id or ":" in tenant_id:
+            raise ValueError("tenant_id must be non-empty and must not contain ':'")
         if not session_id or len(session_id) > 128 or ":" in session_id:
             raise ValueError("session_id must be 1-128 chars and must not contain ':'")
 
-    def _turns_key(self, client_id: str, session_id: str) -> str:
+    def _turns_key(self, tenant_id: str, session_id: str) -> str:
         """Generate Redis key for session turns (message history)."""
-        self._validate_namespace_inputs(client_id, session_id)
-        return f"{client_id}:session:{session_id}:turns"
+        self._validate_namespace_inputs(tenant_id, session_id)
+        return f"{tenant_id}:session:{session_id}:turns"
 
-    def _meta_key(self, client_id: str, session_id: str) -> str:
+    def _meta_key(self, tenant_id: str, session_id: str) -> str:
         """Generate Redis key for session metadata."""
-        self._validate_namespace_inputs(client_id, session_id)
-        return f"{client_id}:session:{session_id}:meta"
+        self._validate_namespace_inputs(tenant_id, session_id)
+        return f"{tenant_id}:session:{session_id}:meta"
 
     async def create_session(
         self,
-        client_id: str,
+        tenant_id: str,
         session_id: str,
         agent_id: str,
     ) -> None:
         """Create a new session (or reset existing session).
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             session_id: Session unique ID (max 128 chars)
             agent_id: UUID of the agent invoking this session
 
         Raises:
             ValueError: If session_id is empty or > 128 chars
         """
-        self._validate_namespace_inputs(client_id, session_id)
+        self._validate_namespace_inputs(tenant_id, session_id)
 
-        turns_key = self._turns_key(client_id, session_id)
-        meta_key = self._meta_key(client_id, session_id)
+        turns_key = self._turns_key(tenant_id, session_id)
+        meta_key = self._meta_key(tenant_id, session_id)
 
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         metadata = SessionMetadata(
@@ -172,21 +172,21 @@ class RedisSessionStore:
 
         logger.info(
             "session_created",
-            client_id=client_id,
+            tenant_id=tenant_id,
             session_id=session_id,
             agent_id=agent_id,
         )
 
     async def append_turn(
         self,
-        client_id: str,
+        tenant_id: str,
         session_id: str,
         turn: SessionTurn,
     ) -> int:
         """Append a single turn to the session history.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             session_id: Session identifier
             turn: SessionTurn object to append
 
@@ -198,8 +198,8 @@ class RedisSessionStore:
             - Idempotent: appending the same turn twice incurs no dedup
             - Metadata is updated on each append
         """
-        turns_key = self._turns_key(client_id, session_id)
-        meta_key = self._meta_key(client_id, session_id)
+        turns_key = self._turns_key(tenant_id, session_id)
+        meta_key = self._meta_key(tenant_id, session_id)
 
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -226,7 +226,7 @@ class RedisSessionStore:
 
         logger.debug(
             "turn_appended",
-            client_id=client_id,
+            tenant_id=tenant_id,
             session_id=session_id,
             role=turn.role,
             turn_count=turn_count,
@@ -236,13 +236,13 @@ class RedisSessionStore:
 
     async def load_turns(
         self,
-        client_id: str,
+        tenant_id: str,
         session_id: str,
     ) -> list[SessionTurn]:
         """Load all turns in a session.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             session_id: Session identifier
 
         Returns:
@@ -252,8 +252,8 @@ class RedisSessionStore:
             - Resets TTL (sliding window behavior)
             - Returns empty list if session does not exist
         """
-        turns_key = self._turns_key(client_id, session_id)
-        meta_key = self._meta_key(client_id, session_id)
+        turns_key = self._turns_key(tenant_id, session_id)
+        meta_key = self._meta_key(tenant_id, session_id)
 
         # Fetch all turns
         turn_jsons = await self.redis.lrange(turns_key, 0, -1)
@@ -269,7 +269,7 @@ class RedisSessionStore:
 
         logger.debug(
             "turns_loaded",
-            client_id=client_id,
+            tenant_id=tenant_id,
             session_id=session_id,
             turn_count=len(turns),
         )
@@ -278,19 +278,19 @@ class RedisSessionStore:
 
     async def get_metadata(
         self,
-        client_id: str,
+        tenant_id: str,
         session_id: str,
     ) -> SessionMetadata | None:
         """Retrieve session metadata.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             session_id: Session identifier
 
         Returns:
             SessionMetadata if session exists, None otherwise
         """
-        meta_key = self._meta_key(client_id, session_id)
+        meta_key = self._meta_key(tenant_id, session_id)
 
         meta_dict = await self.redis.hgetall(meta_key)
         if not meta_dict:
@@ -303,36 +303,36 @@ class RedisSessionStore:
 
     async def delete_session(
         self,
-        client_id: str,
+        tenant_id: str,
         session_id: str,
     ) -> bool:
         """Delete a session and all associated data.
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
             session_id: Session identifier
 
         Returns:
             True if session was deleted, False if it did not exist
         """
-        turns_key = self._turns_key(client_id, session_id)
-        meta_key = self._meta_key(client_id, session_id)
+        turns_key = self._turns_key(tenant_id, session_id)
+        meta_key = self._meta_key(tenant_id, session_id)
 
         deleted = await self.redis.delete(turns_key, meta_key)
 
         logger.info(
             "session_deleted",
-            client_id=client_id,
+            tenant_id=tenant_id,
             session_id=session_id,
         )
 
         return deleted > 0
 
-    async def list_sessions(self, client_id: str) -> list[str]:
-        """List all session IDs for a client (for admin/monitoring).
+    async def list_sessions(self, tenant_id: str) -> list[str]:
+        """List all session IDs for a tenant (for admin/monitoring).
 
         Args:
-            client_id: Tenant identifier
+            tenant_id: Tenant identifier
 
         Returns:
             List of session_id strings
@@ -341,14 +341,14 @@ class RedisSessionStore:
             - Uses SCAN to avoid blocking on large Redis instances
             - Only returns sessions that have metadata (created_session was called)
         """
-        pattern = f"{client_id}:session:*:meta"
+        pattern = f"{tenant_id}:session:*:meta"
         session_ids = []
 
         cursor = 0
         while True:
             cursor, keys = await self.redis.scan(cursor, match=pattern)
             for key in keys:
-                # Extract session_id from key format: {client_id}:session:{session_id}:meta
+                # Extract session_id from key format: {tenant_id}:session:{session_id}:meta
                 raw_key = key.decode() if isinstance(key, bytes) else key
                 session_id = raw_key.split(":")[2]
                 session_ids.append(session_id)
@@ -358,7 +358,7 @@ class RedisSessionStore:
 
         logger.debug(
             "sessions_listed",
-            client_id=client_id,
+            tenant_id=tenant_id,
             session_count=len(session_ids),
         )
 

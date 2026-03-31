@@ -3,7 +3,7 @@
 **Feature Branch**: `001-ai-agent-platform`
 **Created**: 2026-03-13
 **Status**: Draft
-**Input**: User description: "A self-hosted platform for an AI engineering agency to design, deploy, and operate AI agents for clients."
+**Input**: User description: "A self-hosted platform for an AI engineering agency to design, deploy, and operate AI agents for tenants."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -35,15 +35,15 @@ LLM provider keys set, wait for completion, then call `GET /health` and receive
 
 ### User Story 2 - Client System Invokes an Agent via API (Priority: P2)
 
-A client system (a backend service or integration layer built by a client)
+A tenant system (a backend service or integration layer built by a tenant)
 sends a request to the platform's external API to invoke an agent. The platform
 authenticates the request, executes the agent, and returns the result along with
-a trace identifier the client can use to reference the execution. The client
+a trace identifier the caller can use to reference the execution. The caller
 never needs to know which LLM provider was used or how the agent was
 implemented.
 
 **Why this priority**: This is the primary integration contract. Every other
-capability is only useful if client systems can reliably invoke agents. This
+capability is only useful if tenant systems can reliably invoke agents. This
 story defines the external boundary of the platform.
 
 **Independent Test**: Send an authenticated `POST /agents/{agent_id}/invoke`
@@ -52,24 +52,24 @@ request with a valid payload and receive a structured response with a result and
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid `X-API-Key` header and well-formed request body, **When** the client calls `POST /agents/{agent_id}/invoke`, **Then** the platform returns a structured response containing the agent's output and a `trace_id` within an acceptable time bound.
-2. **Given** an `X-API-Key` header that is absent or invalid, **When** the client calls any protected endpoint, **Then** the platform returns 401 with no execution occurring.
-3. **Given** a request with a malformed body (missing required fields), **When** the client calls the invocation endpoint, **Then** the platform returns 422 with a structured description of every validation error.
-4. **Given** an `agent_id` that does not exist, **When** the client invokes it, **Then** the platform returns 404 with a human-readable error message.
-5. **Given** a client belongs to tenant A, **When** the invocation completes, **Then** the stored execution data (memory, trace, job records) is accessible only under tenant A's namespace and is not visible to tenant B's API calls.
+1. **Given** a valid `X-API-Key` header and well-formed request body, **When** the caller calls `POST /agents/{agent_id}/invoke`, **Then** the platform returns a structured response containing the agent's output and a `trace_id` within an acceptable time bound.
+2. **Given** an `X-API-Key` header that is absent or invalid, **When** the caller calls any protected endpoint, **Then** the platform returns 401 with no execution occurring.
+3. **Given** a request with a malformed body (missing required fields), **When** the caller calls the invocation endpoint, **Then** the platform returns 422 with a structured description of every validation error.
+4. **Given** an `agent_id` that does not exist, **When** the caller invokes it, **Then** the platform returns 404 with a human-readable error message.
+5. **Given** a tenant belongs to tenant A, **When** the invocation completes, **Then** the stored execution data (memory, trace, job records) is accessible only under tenant A's namespace and is not visible to tenant B's API calls.
 
 ---
 
 ### User Story 3 - Conversational Agent Session (Priority: P3)
 
-A client system starts a conversation with an agent by providing a session
+A tenant system starts a conversation with an agent by providing a session
 identifier. On each subsequent turn the agent receives the accumulated
 conversation history from that session, allowing it to respond coherently to
 context established in earlier turns. The session persists until explicitly
 cleared or it expires.
 
 **Why this priority**: Stateful back-and-forth interaction is the most common
-usage pattern for AI agents deployed in client products. Without it most
+usage pattern for AI agents deployed in tenant products. Without it most
 real-world use cases cannot be served.
 
 **Independent Test**: Send three sequential messages in the same session where
@@ -79,20 +79,20 @@ policy, or HITL.
 
 **Acceptance Scenarios**:
 
-1. **Given** a new session ID, **When** the client sends the first message, **Then** the agent responds and the turn is recorded in the session's conversational memory.
-2. **Given** a session with prior turns already recorded, **When** the client sends a follow-up message, **Then** the agent receives the prior turns as context and can respond with awareness of what was said earlier.
-3. **Given** a session that has not been used for longer than the configured session TTL, **When** a new message arrives in that session, **Then** the session is treated as new (no stale context is injected). The TTL must be configurable per client.
-4. **Given** two clients (tenant A and tenant B) that happen to use the same session identifier string, **When** each sends a message, **Then** each agent receives only the history from its own tenant's session — cross-tenant history leakage is impossible.
+1. **Given** a new session ID, **When** the caller sends the first message, **Then** the agent responds and the turn is recorded in the session's conversational memory.
+2. **Given** a session with prior turns already recorded, **When** the caller sends a follow-up message, **Then** the agent receives the prior turns as context and can respond with awareness of what was said earlier.
+3. **Given** a session that has not been used for longer than the configured session TTL, **When** a new message arrives in that session, **Then** the session is treated as new (no stale context is injected). The TTL must be configurable per tenant.
+4. **Given** two tenants (tenant A and tenant B) that happen to use the same session identifier string, **When** each sends a message, **Then** each agent receives only the history from its own tenant's session — cross-tenant history leakage is impossible.
 
 ---
 
 ### User Story 4 - Tool-Using Agent Completes a Multi-Step Task (Priority: P4)
 
 An agency engineer configures an agent with a set of tools (web search, code
-execution, REST API caller, file reader/writer). A client system sends a task
+execution, REST API caller, file reader/writer). A tenant system sends a task
 description. The agent autonomously decides which tools to invoke, in what
 order, and with what inputs, then synthesises the tool outputs into a final
-answer. The client receives the answer and a full trace of every tool call made.
+answer. The caller receives the answer and a full trace of every tool call made.
 
 **Why this priority**: Tool-using agents are the primary mechanism for extending
 agent capability beyond pure language generation. They enable the high-value,
@@ -114,8 +114,8 @@ call — testable entirely offline without real external APIs.
 
 ### User Story 5 - Batch Job Submitted and Processed Asynchronously (Priority: P5)
 
-A client system submits a long-running job (e.g., analyse a large document,
-generate a weekly report) and immediately receives a job ID. The client
+A tenant system submits a long-running job (e.g., analyse a large document,
+generate a weekly report) and immediately receives a job ID. The caller
 periodically polls for status or receives a webhook notification when the job
 completes. The job is processed in the background and the result is retrievable
 via the job ID. If the platform restarts while a job is running, the job resumes
@@ -123,7 +123,7 @@ or is re-queued cleanly.
 
 **Why this priority**: Many high-value automation tasks run too long for a
 synchronous HTTP call. Async batch processing is required for the agency to
-serve pipeline-oriented client use cases.
+serve pipeline-oriented tenant use cases.
 
 **Independent Test**: Submit a job, receive a job ID, poll status until
 `completed`, retrieve result — all verifiable without conversational memory or
@@ -131,11 +131,11 @@ policy features, using an agent that performs minimal work.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid job submission request, **When** the client calls the async invocation endpoint, **Then** the platform returns immediately with a `job_id` and a status of `pending` or `queued`.
-2. **Given** a submitted job, **When** the client polls `GET /jobs/{job_id}`, **Then** the response reflects the current status (`pending`, `running`, `completed`, `failed`) and, when completed, includes the result.
+1. **Given** a valid job submission request, **When** the caller calls the async invocation endpoint, **Then** the platform returns immediately with a `job_id` and a status of `pending` or `queued`.
+2. **Given** a submitted job, **When** the caller polls `GET /jobs/{job_id}`, **Then** the response reflects the current status (`pending`, `running`, `completed`, `failed`) and, when completed, includes the result.
 3. **Given** a job in progress and the platform restarts, **When** the platform comes back online, **Then** the job is either resumed or re-queued without manual intervention, with no data loss.
-4. **Given** two clients submit jobs concurrently, **When** both jobs are processing, **Then** a runaway or resource-intensive job from tenant A does not prevent tenant B's jobs from making progress.
-5. **Given** a completed job result, **When** a client from a different tenant attempts to retrieve it using the job ID, **Then** the platform returns 404 — result access is isolated by tenant.
+4. **Given** two tenants submit jobs concurrently, **When** both jobs are processing, **Then** a runaway or resource-intensive job from tenant A does not prevent tenant B's jobs from making progress.
+5. **Given** a completed job result, **When** a tenant from a different tenant attempts to retrieve it using the job ID, **Then** the platform returns 404 — result access is isolated by tenant.
 
 ---
 
@@ -167,7 +167,7 @@ fallback provider was used.
 
 ### User Story 7 - Trace Review and Replay (Priority: P7)
 
-An agency engineer notices a client report that an agent returned an unexpected
+An agency engineer notices a tenant report that an agent returned an unexpected
 response. The engineer opens the observability UI, finds the trace by `trace_id`
 or by filtering on time range and agent ID, and sees the full execution tree:
 the input, every LLM call with its prompt and response, every tool invocation
@@ -187,20 +187,20 @@ and the output — verifiable immediately after a single agent execution.
 1. **Given** an agent execution completes (success or failure), **When** the engineer searches for its `trace_id` in the observability UI, **Then** the full execution tree is displayed including input, LLM calls, tool calls, output, per-step latency, and any errors.
 2. **Given** a trace from a failed execution, **When** the engineer selects replay, **Then** the same input is re-submitted to the agent and a new trace is generated linked to the original.
 3. **Given** the trace contains an LLM call, **When** the engineer inspects it, **Then** the exact prompt sent to the model and the raw model response are both visible.
-4. **Given** a trace ID is included in a client-facing API response, **When** the client shares that ID with the agency, **Then** the engineer can look it up directly in the UI.
+4. **Given** a trace ID is included in a tenant-facing API response, **When** the caller shares that ID with the agency, **Then** the engineer can look it up directly in the UI.
 
 ---
 
 ### User Story 8 - Policy Check Before Response Delivery (Priority: P8)
 
-An agency engineer configures a policy for a specific client that defines: which
+An agency engineer configures a policy for a specific tenant that defines: which
 PII patterns to detect and redact (e.g., email addresses, phone numbers), which
 content categories to block, and whether to scan for prompt injection attempts.
-Every agent response produced for that client is automatically evaluated against
+Every agent response produced for that tenant is automatically evaluated against
 the policy before being returned to the caller. Policy violations are logged. The
 policy can be updated without redeploying the platform.
 
-**Why this priority**: Agency clients in regulated industries require data
+**Why this priority**: Agency tenants in regulated industries require data
 protection guarantees. Policy enforcement is a compliance and trust requirement
 for the agency to operate in those verticals.
 
@@ -211,11 +211,11 @@ the returned response has the email address redacted and the violation is logged
 
 **Acceptance Scenarios**:
 
-1. **Given** a client policy with PII redaction rules, **When** the agent response contains a value matching a redaction rule, **Then** the value is replaced with a redaction marker before the response reaches the caller and the raw value is not logged.
-2. **Given** a client policy with a blocked content category, **When** the agent response falls into that category, **Then** the response is suppressed, the caller receives an error indicating policy violation, and the violation is recorded.
-3. **Given** the agent input contains a suspected prompt injection attempt, **When** the policy layer detects it, **Then** the execution is flagged in the trace and optionally blocked depending on the client's policy configuration.
-4. **Given** an engineer updates a client's policy configuration, **When** the change takes effect without platform restart, **Then** subsequent invocations for that client use the updated rules immediately.
-5. **Given** a client that has no policy configured, **When** an agent is invoked for that client, **Then** responses pass through unmodified with no degradation in performance.
+1. **Given** a tenant policy with PII redaction rules, **When** the agent response contains a value matching a redaction rule, **Then** the value is replaced with a redaction marker before the response reaches the caller and the raw value is not logged.
+2. **Given** a tenant policy with a blocked content category, **When** the agent response falls into that category, **Then** the response is suppressed, the caller receives an error indicating policy violation, and the violation is recorded.
+3. **Given** the agent input contains a suspected prompt injection attempt, **When** the policy layer detects it, **Then** the execution is flagged in the trace and optionally blocked depending on the tenant's policy configuration.
+4. **Given** an engineer updates a tenant's policy configuration, **When** the change takes effect without platform restart, **Then** subsequent invocations for that tenant use the updated rules immediately.
+5. **Given** a tenant that has no policy configured, **When** an agent is invoked for that tenant, **Then** responses pass through unmodified with no degradation in performance.
 
 ---
 
@@ -230,7 +230,7 @@ either approves or rejects it. If approved the agent continues; if rejected the
 agent receives the rejection and can handle it gracefully.
 
 **Why this priority**: Irreversible or high-risk tool calls without human
-oversight are a liability risk for the agency and its clients. This capability
+oversight are a liability risk for the agency and its tenants. This capability
 is a safety gate for production deployments.
 
 **Independent Test**: Configure a tool as requiring approval. Invoke an agent
@@ -285,15 +285,15 @@ gracefully on rejection) and the trace reflects the approval event.
 
 - **FR-014**: All agent LLM calls MUST be routed through a centralised LLM proxy. Agents MUST specify model aliases (e.g., `default`, `fast`, `embedding`), never provider-specific model strings.
 - **FR-015**: The LLM proxy MUST support configuring fallback providers per alias. If the primary provider fails, the proxy MUST automatically retry with the fallback and record the event.
-- **FR-016**: The LLM proxy MUST enforce configurable per-client and per-model spending limits. Requests that would exceed the limit MUST be rejected with a clear error.
+- **FR-016**: The LLM proxy MUST enforce configurable per-tenant and per-model spending limits. Requests that would exceed the limit MUST be rejected with a clear error.
 - **FR-017**: The platform MUST support at minimum: Anthropic, OpenAI, and locally-hosted model endpoints. Adding a new provider MUST require only a configuration change, not a code change.
 
 **Memory**
 
-- **FR-018**: The platform MUST maintain conversational memory per session per client. Each turn in a session MUST be stored and supplied as context on subsequent turns.
+- **FR-018**: The platform MUST maintain conversational memory per session per tenant. Each turn in a session MUST be stored and supplied as context on subsequent turns.
 - **FR-019**: Sessions MUST expire after a configurable idle TTL. Expired session memory MUST be treated as cleared on the next invocation.
 - **FR-020**: The platform MUST support semantic memory: an agent MUST be able to store a fact as an embedding and later retrieve the most semantically relevant stored facts given a query.
-- **FR-021**: Semantic memory MUST persist indefinitely across sessions until explicitly deleted. It MUST be isolated per client.
+- **FR-021**: Semantic memory MUST persist indefinitely across sessions until explicitly deleted. It MUST be isolated per tenant.
 
 **Observability**
 
@@ -306,20 +306,20 @@ gracefully on rejection) and the trace reflects the approval event.
 
 - **FR-026**: The platform MUST apply a configurable policy check to every agent response before returning it to the caller.
 - **FR-027**: Policy MUST support: PII pattern detection and redaction, content category blocking, and prompt injection detection.
-- **FR-028**: Policy rules MUST be configurable per client without redeploying the platform. Configuration changes MUST take effect without a full restart.
-- **FR-029**: All policy violations MUST be logged with the trace ID, client ID, violation type, and (for redaction) a description of what was detected — but NOT the raw sensitive value.
+- **FR-028**: Policy rules MUST be configurable per tenant without redeploying the platform. Configuration changes MUST take effect without a full restart.
+- **FR-029**: All policy violations MUST be logged with the trace ID, tenant ID, violation type, and (for redaction) a description of what was detected — but NOT the raw sensitive value.
 - **FR-030**: Clients with no configured policy MUST experience no performance overhead from the policy layer.
 
-**Client Isolation**
+**Tenant Isolation**
 
-- **FR-031**: All client data (session memory, semantic memory, job queues, traces) MUST be stored under a namespace keyed by `client_id`. Cross-namespace access MUST be impossible by design.
-- **FR-032**: A misbehaving or resource-intensive agent execution for one client MUST NOT prevent other clients' agents from running.
-- **FR-033**: API keys MUST be scoped to a single client. A valid API key for client A MUST NOT grant access to client B's resources.
+- **FR-031**: All tenant data (session memory, semantic memory, job queues, traces) MUST be stored under a namespace keyed by `tenant_id`. Cross-namespace access MUST be impossible by design.
+- **FR-032**: A misbehaving or resource-intensive agent execution for one tenant MUST NOT prevent other tenants' agents from running.
+- **FR-033**: API keys MUST be scoped to a single tenant. A valid API key for tenant A MUST NOT grant access to tenant B's resources.
 
 **Human-in-the-Loop**
 
 - **FR-034**: Any tool call MAY be designated as requiring human approval in the platform's tool configuration. This designation applies platform-wide for that tool.
-- **FR-035**: When an agent reaches an approval-gated tool call, execution MUST pause. The job status changes to `pending_approval` and an approval request is sent to the client's configured approval endpoint.
+- **FR-035**: When an agent reaches an approval-gated tool call, execution MUST pause. The job status changes to `pending_approval` and an approval request is sent to the tenant's configured approval endpoint.
 - **FR-036**: The approval request MUST include: agent ID, tool name, proposed arguments, session context summary, and the job ID.
 - **FR-037**: The platform MUST expose endpoints for a reviewer to submit an approval or rejection decision for a pending approval request.
 - **FR-038**: Approvals MUST have a configurable timeout. On timeout, the decision MUST default to rejected and the agent MUST be notified.
@@ -334,11 +334,11 @@ gracefully on rejection) and the trace reflects the approval event.
 ### Key Entities
 
 - **Agent**: A named, versioned definition specifying: which model alias it uses, which tools it can invoke, which system prompt it loads, its memory configuration, and its approval-gated tools. An agent definition is stateless; state lives in sessions and jobs.
-- **Session**: A named conversation context scoped to an agent and a client. Contains: session ID, client ID, agent ID, ordered list of turns (each turn has role, content, timestamp), TTL, and last-active timestamp.
-- **Job**: An asynchronous execution record. Contains: job ID, client ID, agent ID, input payload, status, created-at, started-at, completed-at, result (when complete), error (when failed), and trace ID.
-- **Trace**: An immutable record of one complete agent execution. Contains: trace ID, agent ID, client ID, total latency, input, output, and an ordered list of spans — each span records the operation type, inputs, outputs, latency, and any error.
+- **Session**: A named conversation context scoped to an agent and a tenant. Contains: session ID, tenant ID, agent ID, ordered list of turns (each turn has role, content, timestamp), TTL, and last-active timestamp.
+- **Job**: An asynchronous execution record. Contains: job ID, tenant ID, agent ID, input payload, status, created-at, started-at, completed-at, result (when complete), error (when failed), and trace ID.
+- **Trace**: An immutable record of one complete agent execution. Contains: trace ID, agent ID, tenant ID, total latency, input, output, and an ordered list of spans — each span records the operation type, inputs, outputs, latency, and any error.
 - **ApprovalRequest**: A paused execution awaiting human decision. Contains: request ID, job ID, tool name, proposed arguments, context summary, status (`pending`, `approved`, `rejected`, `timed_out`), decision timestamp, and reviewer identifier.
-- **ClientPolicy**: Per-client policy configuration. Contains: client ID, list of PII detection rules (pattern and redaction marker), list of blocked content categories, prompt injection detection flag, and policy version.
+- **TenantPolicy**: Per-tenant policy configuration. Contains: tenant ID, list of PII detection rules (pattern and redaction marker), list of blocked content categories, prompt injection detection flag, and policy version.
 - **ModelAlias**: Mapping of a logical alias name to: primary provider and model, optional fallback provider and model, and optional per-alias spend limit.
 
 ## Success Criteria *(mandatory)*
@@ -349,9 +349,9 @@ gracefully on rejection) and the trace reflects the approval event.
 - **SC-002**: Any synchronous agent invocation (not blocked on human approval) returns a response within 30 seconds for 95% of requests under normal load.
 - **SC-003**: A batch job that survives a platform restart is automatically re-queued and begins processing within 60 seconds of the platform coming back online, with no manual intervention.
 - **SC-004**: An engineer can locate a specific trace by ID in the observability UI and view the complete execution tree within 10 seconds of entering the trace ID.
-- **SC-005**: A policy configuration change for a client takes effect for all subsequent invocations within 30 seconds of being applied, without a platform restart.
+- **SC-005**: A policy configuration change for a tenant takes effect for all subsequent invocations within 30 seconds of being applied, without a platform restart.
 - **SC-006**: 100% of agent executions that complete (success or failure) have a retrievable trace. Zero executions may complete without a trace record.
-- **SC-007**: A runaway job from one client does not prevent agents from other clients completing their executions within their normal time bounds.
+- **SC-007**: A runaway job from one tenant does not prevent agents from other tenants completing their executions within their normal time bounds.
 - **SC-008**: All internally-used secrets are generated with cryptographic randomness by the bootstrap script. No default or predictable secret values exist after bootstrap.
 - **SC-009**: Engineers unfamiliar with the platform internals can identify all required configuration values by reading `.env.example` alone.
 - **SC-010**: Swapping the LLM provider behind a model alias requires only a configuration change (no code change, no rebuild), taking effect on the next routing service restart.
@@ -363,6 +363,6 @@ gracefully on rejection) and the trace reflects the approval event.
 - There is no end-user-facing frontend. All interaction is API-to-API.
 - Fine-tuning and model training are out of scope. Only inference is in scope.
 - The host running Docker has outbound internet access for pulling images and reaching cloud LLM APIs. Air-gapped deployment is a future concern.
-- Per-client spend limits are tracked at the LLM proxy level, not enforced at a billing or payment system level.
+- Per-tenant spend limits are tracked at the LLM proxy level, not enforced at a billing or payment system level.
 - The approval UI referenced in the HITL user story is the observability platform's built-in interface; no separate bespoke approval UI is built as part of this feature.
 - Engineers access the observability UI using credentials managed by that tool's own authentication, independent of the `X-API-Key` scheme.

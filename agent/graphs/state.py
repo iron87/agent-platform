@@ -17,7 +17,7 @@ class AgentState(TypedDict):
     """
 
     # Input payload
-    client_id: str
+    tenant_id: str
     """Tenant identifier for namespace isolation (e.g., Redis keys, Qdrant collections)"""
 
     job_id: str

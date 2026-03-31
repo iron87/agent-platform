@@ -73,7 +73,7 @@ async def test_tool_agent_retries_then_succeeds() -> None:
     )
 
     state = {
-        "client_id": "tenant-1",
+        "tenant_id": "tenant-1",
         "job_id": "job-1",
         "session_id": None,
         "input": "run tool",
@@ -115,7 +115,7 @@ async def test_tool_agent_blocks_disallowed_tool() -> None:
     )
 
     state = {
-        "client_id": "tenant-1",
+        "tenant_id": "tenant-1",
         "job_id": "job-2",
         "session_id": None,
         "input": "try disallowed tool",
@@ -156,7 +156,7 @@ async def test_tool_agent_fails_when_loop_exhausted() -> None:
     )
 
     state = {
-        "client_id": "tenant-1",
+        "tenant_id": "tenant-1",
         "job_id": "job-3",
         "session_id": None,
         "input": "never finish",

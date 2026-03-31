@@ -27,7 +27,7 @@ class QueueUnavailableError(Exception):
 @dataclass(frozen=True)
 class AgentJobEnqueueRequest:
     job_id: str
-    client_id: str
+    tenant_id: str
     agent_id: str
     input: str
     session_id: str | None = None
@@ -41,10 +41,14 @@ class AgentJobEnqueueRequest:
     result_ttl_seconds: int = DEFAULT_RESULT_TTL_SECONDS
     failure_ttl_seconds: int = DEFAULT_FAILURE_TTL_SECONDS
 
+    @property
+    def client_id(self) -> str:
+        return self.tenant_id
+
     def to_payload(self) -> dict[str, Any]:
         return {
             "job_id": self.job_id,
-            "client_id": self.client_id,
+            "tenant_id": self.tenant_id,
             "agent_id": self.agent_id,
             "input": self.input,
             "session_id": self.session_id,
@@ -107,7 +111,7 @@ def enqueue_job(
     job_payload: dict[str, Any],
     *,
     job_id: str,
-    client_id: str,
+    tenant_id: str,
     timeout_seconds: int | None = None,
     max_retries: int = 3,
     retry_intervals: list[int] | None = None,
@@ -122,7 +126,7 @@ def enqueue_job(
         task_path: Path to task function (e.g., "worker.tasks.run_agent_job")
         job_payload: Dictionary of arguments to pass to the task
         job_id: Unique job identifier (UUID string, used for idempotency)
-        client_id: Tenant identifier (attached as metadata)
+        tenant_id: Tenant identifier (attached as metadata)
         timeout_seconds: Job timeout (None = use queue default)
         max_retries: Number of retries on failure
         retry_intervals: List of retry delay seconds; defaults to [30, 120, 300]
@@ -152,13 +156,13 @@ def enqueue_job(
             timeout=timeout_seconds,
             result_ttl=result_ttl_seconds,
             failure_ttl=failure_ttl_seconds,
-            meta=meta or {"client_id": client_id},
+            meta=meta or {"tenant_id": tenant_id},
         )
 
         logger.info(
             "job_enqueued",
             job_id=job_id,
-            client_id=client_id,
+            tenant_id=tenant_id,
             task=task_path,
             queue=queue.name,
             retries=max_retries,
@@ -173,7 +177,7 @@ def enqueue_job(
         logger.error(
             "job_enqueue_failed",
             job_id=job_id,
-            client_id=client_id,
+            tenant_id=tenant_id,
             task=task_path,
             error_type=type(e).__name__,
             error_message=str(e),
@@ -193,12 +197,12 @@ def enqueue_agent_job(*, redis_url: str, request: AgentJobEnqueueRequest) -> Any
         request.task_path,
         request.to_payload(),
         job_id=request.job_id,
-        client_id=request.client_id,
+        tenant_id=request.tenant_id,
         timeout_seconds=request.timeout_seconds,
         max_retries=request.max_retries,
         retry_intervals=list(request.retry_intervals),
         meta={
-            "client_id": request.client_id,
+            "tenant_id": request.tenant_id,
             "agent_id": request.agent_id,
             "mode": request.mode,
         },

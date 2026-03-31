@@ -16,7 +16,7 @@ class _DummyJob:
 def test_agent_job_enqueue_request_builds_payload() -> None:
     request = queue_module.AgentJobEnqueueRequest(
         job_id="job-1",
-        client_id="client-1",
+        tenant_id="tenant-1",
         agent_id="agent-1",
         input="summarize this",
         session_id="session-1",
@@ -25,7 +25,7 @@ def test_agent_job_enqueue_request_builds_payload() -> None:
 
     assert request.to_payload() == {
         "job_id": "job-1",
-        "client_id": "client-1",
+        "tenant_id": "tenant-1",
         "agent_id": "agent-1",
         "input": "summarize this",
         "session_id": "session-1",
@@ -55,7 +55,7 @@ def test_enqueue_agent_job_uses_queue_and_retry_policy(monkeypatch) -> None:
 
     request = queue_module.AgentJobEnqueueRequest(
         job_id="job-1",
-        client_id="client-1",
+        tenant_id="tenant-1",
         agent_id="agent-1",
         input="summarize this",
         metadata={"ticket_id": "SUP-1"},

@@ -54,19 +54,19 @@ specs/[###-feature]/
 
 ## Summary
 
-A self-hosted AI agent platform for an engineering agency. Engineers define agents as LangGraph `StateGraph`s; client systems invoke them via a FastAPI service authenticated by `X-API-Key`. The platform runs entirely on Docker Compose (single host), uses LiteLLM as an LLM gateway with provider-alias routing, Redis for session memory and job queues, Qdrant + Mem0 for semantic memory, Langfuse for LLM tracing, and NeMo Guardrails for per-client policy enforcement. A single bootstrap script initialises every service and generates all internal secrets on a fresh Docker host.
+A self-hosted AI agent platform for an engineering agency. Engineers define agents as LangGraph `StateGraph`s; tenant systems invoke them via a FastAPI service authenticated by `X-API-Key`. The platform runs entirely on Docker Compose (single host), uses LiteLLM as an LLM gateway with provider-alias routing, Redis for session memory and job queues, Qdrant + Mem0 for semantic memory, Langfuse for LLM tracing, and NeMo Guardrails for per-tenant policy enforcement. A single bootstrap script initialises every service and generates all internal secrets on a fresh Docker host.
 
 ## Technical Context
 
 **Language/Version**: Python 3.12  
 **Primary Dependencies**: FastAPI, LangGraph, LiteLLM (gateway container), Pydantic v2, rq (Redis Queue), Mem0, Qdrant-client, NeMo Guardrails, structlog, Langfuse SDK (Python), Caddy (reverse proxy + TLS)  
-**Storage**: PostgreSQL 16 (job records, agent definitions, client configs), Redis 7 (session memory TTL, rq job queue, policy cache), Qdrant (vector store for semantic memory)  
+**Storage**: PostgreSQL 16 (job records, agent definitions, tenant configs), Redis 7 (session memory TTL, rq job queue, policy cache), Qdrant (vector store for semantic memory)  
 **Testing**: pytest + pytest-asyncio; LiteLLM calls mocked via `unittest.mock`; integration tests guarded by `TEST_INTEGRATION=true`  
 **Target Platform**: Linux server running Docker Compose (single host); development on macOS via Docker Desktop using identical compose file  
 **Project Type**: web-service (FastAPI API) + background worker (rq worker)  
 **Performance Goals**: p95 synchronous invocation ≤ 30 s; batch job re-queue within 60 s of restart; policy config change propagation ≤ 30 s  
 **Constraints**: Single-host only; no streaming in v1; no horizontal scaling; no managed cloud services as hard dependencies  
-**Scale/Scope**: Multi-tenant via namespace isolation (`{client_id}:*`); concurrent capacity bounded by host resources only
+**Scale/Scope**: Multi-tenant via namespace isolation (`{tenant_id}:*`); concurrent capacity bounded by host resources only
 
 ## Constitution Check
 
@@ -130,7 +130,7 @@ A self-hosted AI agent platform for an engineering agency. Engineers define agen
 |-----------|--------|-------|
 | New agents follow LangGraph pattern | ✅ PASS | All agents in `agent/graphs/` as compiled `StateGraph`. |
 | Tools are MCP-compatible | ✅ PASS | Tool definitions follow MCP schema. |
-| Multi-tenancy via namespace | ✅ PASS | Redis: `{client_id}:session:{session_id}`, Qdrant: `{client_id}_memory`. |
+| Multi-tenancy via namespace | ✅ PASS | Redis: `{tenant_id}:session:{session_id}`, Qdrant: `{tenant_id}_memory`. |
 | Infrastructure as code | ✅ PASS | `docker-compose.yml` is the IaC definition for all infrastructure. `infra/` holds bootstrap script and any supplemental IaC. |
 
 **GATE RESULT: ✅ ALL PASS — proceeding to Phase 0**
@@ -170,8 +170,8 @@ agent/                        # Python package: agent execution runtime
 │   ├── conversational.md
 │   ├── tool_agent.md
 │   └── batch_agent.md
-└── guardrails/               # Per-client NeMo Guardrails Colang configs
-    └── {client_id}.co        # One file per client (loaded at startup)
+└── guardrails/               # Per-tenant NeMo Guardrails Colang configs
+    └── {tenant_id}.co        # One file per tenant (loaded at startup)
 
 api/                          # FastAPI application
 ├── main.py                   # App factory, startup validation, router registration
@@ -180,7 +180,7 @@ api/                          # FastAPI application
 │   ├── jobs.py               # GET /api/v1/jobs/{job_id}
 │   ├── approvals.py          # POST /api/v1/approvals/{request_id}/decide
 │   └── health.py             # GET /health
-├── deps.py                   # FastAPI dependencies (auth, client ID resolution)
+├── deps.py                   # FastAPI dependencies (auth, tenant ID resolution)
 └── models/                   # Pydantic request/response models
     ├── run.py
     ├── jobs.py

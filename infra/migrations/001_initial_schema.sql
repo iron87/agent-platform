@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS clients (
+CREATE TABLE IF NOT EXISTS tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     api_key_hash TEXT NOT NULL UNIQUE,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS agent_definitions (
 
 CREATE TABLE IF NOT EXISTS jobs (
     id UUID PRIMARY KEY,
-    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
     agent_id UUID NOT NULL REFERENCES agent_definitions(id) ON DELETE RESTRICT,
     session_id TEXT,
     input_payload JSONB NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_jobs_client_created_at
-    ON jobs (client_id, created_at DESC);
+    ON jobs (tenant_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_jobs_status_open
     ON jobs (status)
@@ -52,7 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_status_open
 CREATE TABLE IF NOT EXISTS approval_requests (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
     tool_name TEXT NOT NULL,
     proposed_args JSONB NOT NULL,
     context_summary TEXT,
@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS approval_requests (
 CREATE INDEX IF NOT EXISTS idx_approval_requests_status_timeout
     ON approval_requests (status, timeout_at);
 
-CREATE TABLE IF NOT EXISTS client_policies (
-    client_id UUID PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS tenant_policies (
+    tenant_id UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
     version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
     pii_rules_summary JSONB,
     blocked_categories TEXT[] NOT NULL DEFAULT '{}',

@@ -1,9 +1,9 @@
-"""Per-client NeMo Guardrails policy registry with hot-reload support.
+"""Per-tenant NeMo Guardrails policy registry with hot-reload support.
 
 Provides:
-- Per-client policy registry (one LLMRails instance per client)
+- Per-tenant policy registry (one LLMRails instance per tenant)
 - Automatic hot-reload via polling (20s interval, mtime/hash comparison)
-- Zero-overhead pass-through for clients without policies
+- Zero-overhead pass-through for tenants without policies
 - Atomic registry swaps to avoid data races
 """
 
@@ -30,7 +30,7 @@ def _compute_dir_hash(directory: Path) -> str:
     """Compute hash of all files in a directory (for change detection).
 
     Args:
-        directory: Path to directory (e.g., `agent/guardrails/{client_id}/`)
+        directory: Path to directory (e.g., `agent/guardrails/{tenant_id}/`)
 
     Returns:
         SHA256 hex of sorted file contents (order-independent)
@@ -46,21 +46,21 @@ def _compute_dir_hash(directory: Path) -> str:
     return hash_obj.hexdigest()
 
 
-def _build_rails(client_id: str, guardrails_dir: Path) -> Any | None:
+def _build_rails(tenant_id: str, guardrails_dir: Path) -> Any | None:
     """Build LLMRails instance from Colang config directory.
 
     Args:
-        client_id: Client identifier
-        guardrails_dir: Base directory containing `{client_id}/` subdirs
+        tenant_id: Tenant identifier
+        guardrails_dir: Base directory containing `{tenant_id}/` subdirs
 
     Returns:
         Initialized LLMRails instance, or None if config directory not found
     """
     from nemoguardrails import RailsConfig, LLMRails
 
-    cfg_dir = guardrails_dir / client_id
+    cfg_dir = guardrails_dir / tenant_id
     if not cfg_dir.is_dir():
-        logger.debug("rails_config_dir_not_found", client_id=client_id, path=str(cfg_dir))
+        logger.debug("rails_config_dir_not_found", tenant_id=tenant_id, path=str(cfg_dir))
         return None
 
     try:
@@ -68,14 +68,14 @@ def _build_rails(client_id: str, guardrails_dir: Path) -> Any | None:
         rails = LLMRails(config)
         logger.info(
             "rails_config_loaded",
-            client_id=client_id,
+            tenant_id=tenant_id,
             config_dir=str(cfg_dir),
         )
         return rails
     except Exception as e:
         logger.error(
             "rails_config_load_failed",
-            client_id=client_id,
+            tenant_id=tenant_id,
             config_dir=str(cfg_dir),
             error=str(e),
         )
@@ -85,10 +85,10 @@ def _build_rails(client_id: str, guardrails_dir: Path) -> Any | None:
 def initialize_policies(guardrails_dir: Path | str) -> None:
     """Initialize the policy registry (call once at startup).
 
-    Loads all client policies from `guardrails_dir/{client_id}/` subdirectories.
+    Loads all tenant policies from `guardrails_dir/{tenant_id}/` subdirectories.
 
     Args:
-        guardrails_dir: Base directory containing per-client Colang configs
+        guardrails_dir: Base directory containing per-tenant Colang configs
     """
     guardrails_dir = Path(guardrails_dir)
 
@@ -107,16 +107,16 @@ def initialize_policies(guardrails_dir: Path | str) -> None:
             if not cfg_dir.is_dir():
                 continue
 
-            client_id = cfg_dir.name
-            rails = _build_rails(client_id, guardrails_dir)
+            tenant_id = cfg_dir.name
+            rails = _build_rails(tenant_id, guardrails_dir)
             if rails:
-                _registry[client_id] = rails
-                _config_hashes[client_id] = _compute_dir_hash(cfg_dir)
+                _registry[tenant_id] = rails
+                _config_hashes[tenant_id] = _compute_dir_hash(cfg_dir)
 
     logger.info(
         "policies_initialized",
         guardrails_dir=str(guardrails_dir),
-        client_count=len(_registry),
+        tenant_count=len(_registry),
     )
 
 
@@ -130,7 +130,7 @@ def start_hot_reload_loop(
     (registry lock held during swap).
 
     Args:
-        guardrails_dir: Base directory containing per-client configs
+        guardrails_dir: Base directory containing per-tenant configs
         interval_seconds: Polling interval (default 20s for ≤30s propagation)
 
     Returns:
@@ -152,28 +152,28 @@ def start_hot_reload_loop(
                     if not cfg_dir.is_dir():
                         continue
 
-                    client_id = cfg_dir.name
+                    tenant_id = cfg_dir.name
                     dir_hash = _compute_dir_hash(cfg_dir)
-                    old_hash = _config_hashes.get(client_id)
+                    old_hash = _config_hashes.get(tenant_id)
 
                     # Reload if hash changed
                     if old_hash != dir_hash:
-                        rails = _build_rails(client_id, guardrails_dir)
+                        rails = _build_rails(tenant_id, guardrails_dir)
                         if rails:
-                            new_registry[client_id] = rails
-                            new_hashes[client_id] = dir_hash
+                            new_registry[tenant_id] = rails
+                            new_hashes[tenant_id] = dir_hash
                             logger.info(
                                 "policy_reloaded",
-                                client_id=client_id,
+                                tenant_id=tenant_id,
                                 old_hash=old_hash,
                                 new_hash=dir_hash,
                             )
                     else:
                         # Hash unchanged; keep existing instance
                         with _registry_lock:
-                            if client_id in _registry:
-                                new_registry[client_id] = _registry[client_id]
-                                new_hashes[client_id] = dir_hash
+                            if tenant_id in _registry:
+                                new_registry[tenant_id] = _registry[tenant_id]
+                                new_hashes[tenant_id] = dir_hash
 
                 # Atomic swap
                 with _registry_lock:
@@ -197,19 +197,19 @@ def start_hot_reload_loop(
     return thread
 
 
-def get_rails(client_id: str) -> Any | None:
-    """Retrieve LLMRails instance for a client.
+def get_rails(tenant_id: str) -> Any | None:
+    """Retrieve LLMRails instance for a tenant.
 
     Returns None if no policy is configured (triggers pass-through behavior).
 
     Args:
-        client_id: Tenant identifier
+        tenant_id: Tenant identifier
 
     Returns:
         LLMRails instance, or None for no-policy pass-through
     """
     with _registry_lock:
-        return _registry.get(client_id)
+        return _registry.get(tenant_id)
 
 
 async def apply_policy(

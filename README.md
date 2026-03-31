@@ -1,6 +1,6 @@
 # 2brain Platform
 
-Self-hosted multi-tenant AI agent platform for agencies that operate agents for clients.
+Self-hosted multi-tenant AI agent platform for agencies and internal teams.
 
 Architecture diagram: [docs/architecture.md](docs/architecture.md)
 
@@ -9,7 +9,7 @@ Architecture diagram: [docs/architecture.md](docs/architecture.md)
 2brain provides:
 
 - API-based agent invocation (sync, session, async)
-- strict tenant isolation per client
+- strict tenant isolation per tenant
 - tool-enabled agents with allowlists
 - tracing and observability hooks
 - policy and safety controls
@@ -45,7 +45,7 @@ bash infra/bootstrap-light.sh
 | Auth | X-API-Key tenant authentication | ✅ |
 | Execution | Sync + session + async modes | ✅ |
 | Queue | rq-based background execution | ✅ |
-| Policies | Per-client policy hooks | ✅ (core) |
+| Policies | Per-tenant policy hooks | ✅ (core) |
 | HITL | Approval-gated tool execution | ⏳ |
 
 ### Tools
@@ -69,24 +69,24 @@ bash infra/bootstrap-light.sh
 | Tracing | Langfuse callback integration | ✅ |
 | Replay | Trace replay workflow | ⏳ |
 
-## Tenant Registry (Agency / Client / Agent Census)
+## Tenant Registry (Agency / Tenant / Agent Census)
 
-The runtime tenant entity is the client record in table clients. In agency scenarios, each agency can own multiple client tenants, and each client can have multiple agent definitions.
+The runtime tenant entity is the tenant record in table tenants. In agency scenarios, each agency can own multiple tenant workspaces, and each tenant can have multiple agent definitions.
 
 Current model in DB:
 
 - agency: organizational concept (not a dedicated table yet)
-- client: tenant boundary in table clients
+- tenant: isolation boundary in table tenants
 - agent: executable definition in table agent_definitions
 
 ### Schema summary
 
-clients
+tenants
 
 | Column | Type | Required | Notes |
 |--------|------|----------|-------|
 | id | UUID | yes | PK, tenant identifier |
-| name | TEXT | yes | human-readable client name |
+| name | TEXT | yes | human-readable tenant name |
 | api_key_hash | TEXT | yes | unique; accepts bcrypt hash (recommended) |
 | approval_endpoint | TEXT | no | webhook for approval flows |
 | is_active | BOOLEAN | yes | active tenants are accepted by auth |
@@ -110,7 +110,7 @@ agent_definitions
 
 Validation note:
 
-- auth checks only active clients and compares X-API-Key against clients.api_key_hash
+- auth checks only active tenants and compares X-API-Key against tenants.api_key_hash
 - model_alias and graph_type are DB-constrained, invalid values fail at insert/update
 
 ### Fast path for local dev
@@ -121,10 +121,10 @@ bash examples/us2_seed_dev.sh
 
 This seeds:
 
-- one client in clients
+- one tenant in tenants
 - one agent in agent_definitions
 
-### Manual census (clients and agents)
+### Manual census (tenants and agents)
 
 0. Open psql in the postgres container:
 
@@ -138,18 +138,18 @@ docker compose -f infra/docker-compose.yml --env-file .env exec -T postgres \
 ```bash
 python - <<'PY'
 import bcrypt
-api_key = "sk-your-client-key"
+api_key = "sk-your-tenant-key"
 print(bcrypt.hashpw(api_key.encode(), bcrypt.gensalt()).decode())
 PY
 ```
 
-2. Insert client and agent:
+2. Insert tenant and agent:
 
 ```sql
-INSERT INTO clients (id, name, api_key_hash, approval_endpoint, is_active)
+INSERT INTO tenants (id, name, api_key_hash, approval_endpoint, is_active)
 VALUES (
   '11111111-1111-1111-1111-111111111111',
-  'Agency A / Client Alpha',
+  'Agency A / Team Alpha',
   '<bcrypt-hash>',
   NULL,
   TRUE
@@ -176,10 +176,10 @@ VALUES (
 Recommended idempotent version (upsert):
 
 ```sql
-INSERT INTO clients (id, name, api_key_hash, approval_endpoint, is_active)
+INSERT INTO tenants (id, name, api_key_hash, approval_endpoint, is_active)
 VALUES (
   '11111111-1111-1111-1111-111111111111',
-  'Agency A / Client Alpha',
+  'Agency A / Team Alpha',
   '<bcrypt-hash>',
   NULL,
   TRUE
@@ -222,7 +222,7 @@ ON CONFLICT (id) DO UPDATE SET
 3. Query census:
 
 ```sql
-SELECT id, name, is_active FROM clients ORDER BY created_at DESC;
+SELECT id, name, is_active FROM tenants ORDER BY created_at DESC;
 
 SELECT id, name, graph_type, model_alias, tools
 FROM agent_definitions
@@ -233,20 +233,20 @@ ORDER BY created_at DESC;
 
 ```sql
 SELECT id, name, is_active
-FROM clients
+FROM tenants
 ORDER BY created_at DESC;
 
 SELECT id, name, model_alias, graph_type, cardinality(tools) AS tools_count
 FROM agent_definitions
 ORDER BY created_at DESC;
 
-SELECT count(*) AS jobs_total, count(DISTINCT client_id) AS clients_seen
+SELECT count(*) AS jobs_total, count(DISTINCT tenant_id) AS tenants_seen
 FROM jobs;
 ```
 
 Agency-level census suggestion:
 
-- until an agencies table exists, encode agency in clients.name (for example Agency A / Client Alpha) or add an agency tag in a metadata convention managed by your provisioning scripts.
+- until an agencies table exists, encode agency in tenants.name (for example Agency A / Team Alpha) or add an agency tag in a metadata convention managed by your provisioning scripts.
 
 ## API & Examples
 

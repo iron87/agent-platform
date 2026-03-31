@@ -9,13 +9,13 @@ import bcrypt
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.db import ClientsRepository, get_db_session
+from api.db import TenantsRepository, get_db_session
 
 
 @dataclass(frozen=True)
 class TenantContext:
-    client_id: UUID
-    client_name: str
+    tenant_id: UUID
+    tenant_name: str
     approval_endpoint: str | None
 
 
@@ -41,16 +41,16 @@ async def get_current_tenant(
     api_key: Annotated[str, Depends(get_api_key)],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> TenantContext:
-    repository = ClientsRepository(session)
-    candidates = await repository.list_active_clients()
+    repository = TenantsRepository(session)
+    candidates = await repository.list_active_tenants()
 
-    for client in candidates:
-        api_key_hash = str(client["api_key_hash"])
+    for tenant in candidates:
+        api_key_hash = str(tenant["api_key_hash"])
         if _verify_api_key(api_key, api_key_hash):
             return TenantContext(
-                client_id=client["id"],
-                client_name=str(client["name"]),
-                approval_endpoint=client.get("approval_endpoint"),
+                tenant_id=tenant["id"],
+                tenant_name=str(tenant["name"]),
+                approval_endpoint=tenant.get("approval_endpoint"),
             )
 
     raise HTTPException(

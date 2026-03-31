@@ -57,11 +57,11 @@ async with AsyncPostgresSaver.from_conn_string(DATABASE_URL) as checkpointer:
 
 ---
 
-## 2. NeMo Guardrails — per-client config loading and hot-reload
+## 2. NeMo Guardrails — per-tenant config loading and hot-reload
 
-**Decision**: Pre-load per-client `LLMRails` instances at startup; refresh via background polling every 20 s using mtime/hash comparison; atomic swap of the `rails_registry` dict.
+**Decision**: Pre-load per-tenant `LLMRails` instances at startup; refresh via background polling every 20 s using mtime/hash comparison; atomic swap of the `rails_registry` dict.
 
-**Rationale**: NeMo Guardrails has no built-in hot-reload for production (only a dev watchdog). A polling loop with atomic swap meets the ≤30 s propagation requirement (FR-028) without process restart. `RailsConfig.from_path(dir)` loads a client config directory; `RailsConfig.from_content(...)` loads a single `.co` + `.yaml` pair.
+**Rationale**: NeMo Guardrails has no built-in hot-reload for production (only a dev watchdog). A polling loop with atomic swap meets the ≤30 s propagation requirement (FR-028) without process restart. `RailsConfig.from_path(dir)` loads a tenant config directory; `RailsConfig.from_content(...)` loads a single `.co` + `.yaml` pair.
 
 **Alternatives considered**:
 - SIGHUP-triggered reload — fragile in Docker; requires signal plumbing.
@@ -79,8 +79,8 @@ from nemoguardrails import RailsConfig, LLMRails
 _registry: dict[str, LLMRails] = {}
 _registry_lock = threading.Lock()
 
-def _build_rails(client_id: str, guardrails_dir: Path) -> LLMRails | None:
-    cfg_dir = guardrails_dir / client_id
+def _build_rails(tenant_id: str, guardrails_dir: Path) -> LLMRails | None:
+    cfg_dir = guardrails_dir / tenant_id
     if cfg_dir.is_dir():
         return LLMRails(RailsConfig.from_path(str(cfg_dir)))
     return None
@@ -88,21 +88,21 @@ def _build_rails(client_id: str, guardrails_dir: Path) -> LLMRails | None:
 def _refresh_loop(guardrails_dir: Path, interval: int = 20):
     while True:
         for cfg_dir in guardrails_dir.iterdir():
-            client_id = cfg_dir.name
-            rails = _build_rails(client_id, guardrails_dir)
+            tenant_id = cfg_dir.name
+            rails = _build_rails(tenant_id, guardrails_dir)
             if rails:
                 with _registry_lock:
-                    _registry[client_id] = rails
+                    _registry[tenant_id] = rails
         time.sleep(interval)
 
-def get_rails(client_id: str) -> LLMRails | None:
+def get_rails(tenant_id: str) -> LLMRails | None:
     with _registry_lock:
-        return _registry.get(client_id)     # None = no policy = pass-through (FR-030)
+        return _registry.get(tenant_id)     # None = no policy = pass-through (FR-030)
 ```
 
 **Zero-overhead pass-through** (FR-030):
 ```python
-rails = get_rails(request.client_id)
+rails = get_rails(request.tenant_id)
 if rails is None:
     result = await graph.ainvoke(payload, config)     # no guardrails overhead
 else:
@@ -113,7 +113,7 @@ else:
 
 ## 3. Mem0 + Qdrant — namespacing and interface
 
-**Decision**: One Qdrant collection per client (`{client_id}_memory`). One `Memory` instance per client, re-created lazily and cached. All embedding and LLM calls go through LiteLLM at `http://litellm:4000`.
+**Decision**: One Qdrant collection per tenant (`{tenant_id}_memory`). One `Memory` instance per tenant, re-created lazily and cached. All embedding and LLM calls go through LiteLLM at `http://litellm:4000`.
 
 **Rationale**: Per-collection isolation eliminates cross-tenant blast radius from `delete_all()`. Mem0 Python library only (no Mem0 server). The `SemanticMemoryStore` protocol in `agent/memory.py` is the swap boundary.
 
@@ -121,9 +121,9 @@ else:
 - Shared collection + metadata filtering — simpler ops, but `delete_all()` safety issue is critical in multi-tenant.
 - Custom Qdrant-direct module — more control, but Mem0 handles chunking, extraction, deduplication; worth keeping as default.
 
-**Mem0 config per client**:
+**Mem0 config per tenant**:
 ```python
-def _mem0_config(client_id: str) -> dict:
+def _mem0_config(tenant_id: str) -> dict:
     return {
         "llm": {
             "provider": "openai",
@@ -145,7 +145,7 @@ def _mem0_config(client_id: str) -> dict:
         "vector_store": {
             "provider": "qdrant",
             "config": {
-                "collection_name": f"{client_id}_memory",
+                "collection_name": f"{tenant_id}_memory",
                 "host": settings.QDRANT_HOST,
                 "port": settings.QDRANT_PORT,
             },
@@ -188,7 +188,7 @@ job = q.enqueue(
     retry=Retry(max=3, interval=[30, 120, 300]),
     result_ttl=86400,
     failure_ttl=7 * 86400,
-    meta={"client_id": job_record.client_id},
+    meta={"tenant_id": job_record.tenant_id},
 )
 ```
 
@@ -297,8 +297,8 @@ callbacks = [h for h in [langfuse_handler] if h is not None]
 | Area | Decision | Key Implication |
 |------|----------|-----------------|
 | LangGraph HITL | `AsyncPostgresSaver`, `interrupt()` / `Command(resume=...)` | HITL state stored in existing PG |
-| NeMo Guardrails | Per-client `LLMRails`, 20s polling hot-reload | `agent/guardrails/{client_id}/` dir layout |
-| Semantic memory | Mem0 library, per-client Qdrant collection | `{client_id}_memory` collection naming |
+| NeMo Guardrails | Per-tenant `LLMRails`, 20s polling hot-reload | `agent/guardrails/{tenant_id}/` dir layout |
+| Semantic memory | Mem0 library, per-tenant Qdrant collection | `{tenant_id}_memory` collection naming |
 | Batch jobs | rq + Retry + PG source of truth + AOF Redis | `worker/tasks.py` + reconciliation loop |
 | LLM gateway | LiteLLM proxy, pinned tag, OTEL Langfuse callback | API key = `LITELLM_MASTER_KEY` in agent |
 | Observability | Langfuse v3 → adds ClickHouse + MinIO containers | **compose adds 2 new services** |

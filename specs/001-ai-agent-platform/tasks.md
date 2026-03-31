@@ -26,7 +26,7 @@
 
 - [X] T009 Create central settings/config loader with strict env validation in api/config.py
 - [X] T010 [P] Create structured logging setup (`structlog` JSON renderer) in api/logging.py
-- [X] T011 Create PostgreSQL schema migrations for `clients`, `agent_definitions`, `jobs`, `approval_requests`, `client_policies` in infra/migrations/001_initial_schema.sql
+- [X] T011 Create PostgreSQL schema migrations for `tenants`, `agent_definitions`, `jobs`, `approval_requests`, `tenant_policies` in infra/migrations/001_initial_schema.sql
 - [X] T012 Create database session and repository primitives in api/db.py
 - [X] T013 [P] Create API key auth dependency (`X-API-Key`) with tenant scoping in api/deps.py
 - [X] T014 Create shared Pydantic API schemas for run/jobs/approvals/errors in api/models/
@@ -35,7 +35,7 @@
 - [X] T017 [P] Create LiteLLM client wrapper using alias-only model calls in agent/llm.py
 - [X] T018 [P] Create Redis session store abstraction with namespaced key patterns in agent/session_store.py
 - [X] T019 [P] Create semantic memory abstraction + Mem0/Qdrant implementation in agent/memory.py
-- [X] T020 [P] Create per-client policy registry and hot-reload loop in agent/policy.py
+- [X] T020 [P] Create per-tenant policy registry and hot-reload loop in agent/policy.py
 - [X] T021 Create Langfuse callback wiring with graceful fail-open behavior in agent/observability.py
 - [X] T022 Create rq queue factory and enqueue helper with retry/timeouts in worker/queue.py
 - [X] T023 Create shared agent service orchestrator for sync/session/async modes in agent/service.py
@@ -64,9 +64,9 @@
 
 ---
 
-## Phase 4: User Story 2 - Client System Invokes an Agent via API (Priority: P2)
+## Phase 4: User Story 2 - Tenant System Invokes an Agent via API (Priority: P2)
 
-**Goal**: Authenticated clients can synchronously invoke an agent and receive output + trace ID
+**Goal**: Authenticated tenants can synchronously invoke an agent and receive output + trace ID
 
 **Independent Test**: Call authenticated `POST /api/v1/run` with a valid payload and receive `200` with `output` and `trace_id`.
 
@@ -125,7 +125,7 @@
 
 ## Phase 7: User Story 5 - Async Batch Processing (Priority: P5)
 
-**Goal**: Client can submit long-running jobs and retrieve status/results asynchronously
+**Goal**: Tenant can submit long-running jobs and retrieve status/results asynchronously
 
 **Independent Test**: Submit async job, poll until `completed`, retrieve output; restart during `running` and confirm requeue/resume behavior.
 
@@ -154,7 +154,7 @@
 - [ ] T058 [US6] Implement LiteLLM alias/fallback runtime config templating in infra/litellm/config.yaml.template
 - [ ] T059 [US6] Implement alias validation against `agent_definitions.model_alias` in agent/repositories/agents.py
 - [ ] T060 [US6] Implement provider fallback warning logging/trace event mapping in agent/llm.py
-- [ ] T061 [US6] Add per-alias/per-client budget environment wiring in infra/.env.example
+- [ ] T061 [US6] Add per-alias/per-tenant budget environment wiring in infra/.env.example
 - [ ] T062 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/conversational.py
 - [ ] T063 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/tool_agent.py
 - [ ] T064 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/batch_agent.py
@@ -171,7 +171,7 @@
 
 ### Implementation for User Story 7
 
-- [ ] T065 [US7] Add trace metadata propagation (`client_id`, `agent_id`, `job_id`) in agent/observability.py
+- [ ] T065 [US7] Add trace metadata propagation (`tenant_id`, `agent_id`, `job_id`) in agent/observability.py
 - [ ] T066 [US7] Ensure API responses always include execution `trace_id` in api/models/run.py and api/models/jobs.py
 - [ ] T067 [US7] Implement trace-id correlation logging fields in api/logging.py
 - [ ] T068 [US7] Implement replay helper endpoint/service integration in api/routes/agents.py and agent/service.py
@@ -183,7 +183,7 @@
 
 ## Phase 10: User Story 8 - Policy Enforcement Before Delivery (Priority: P8)
 
-**Goal**: Per-client policies redact/block content and detect injection without restart
+**Goal**: Per-tenant policies redact/block content and detect injection without restart
 
 **Independent Test**: Configure policy that redacts emails; invoke agent and verify redaction + violation log.
 
@@ -197,7 +197,7 @@
 - [ ] T075 [US8] Implement hot-reload cache refresh and version tracking updates in agent/policy.py
 - [ ] T076 [US8] Implement no-policy fast path (zero extra policy calls) in agent/service.py
 
-**Checkpoint**: Policy enforcement is per-client, safe, and hot-reloadable
+**Checkpoint**: Policy enforcement is per-tenant, safe, and hot-reloadable
 
 ---
 

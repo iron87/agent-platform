@@ -158,7 +158,7 @@ def test_phase_two_foundation_artifacts_exist() -> None:
 
     assert "class Settings(BaseSettings)" in config
     assert "def get_settings()" in config
-    assert "class ClientsRepository" in db
+    assert "class TenantsRepository" in db
     assert "async def get_db_session()" in db
     assert "class TenantContext" in deps
     assert "async def get_current_tenant" in deps
@@ -169,11 +169,11 @@ def test_phase_two_foundation_artifacts_exist() -> None:
     assert "ApprovalDecision" in approval_models
     assert "class ErrorResponse" in error_models
     for table_name in [
-        "CREATE TABLE IF NOT EXISTS clients",
+        "CREATE TABLE IF NOT EXISTS tenants",
         "CREATE TABLE IF NOT EXISTS agent_definitions",
         "CREATE TABLE IF NOT EXISTS jobs",
         "CREATE TABLE IF NOT EXISTS approval_requests",
-        "CREATE TABLE IF NOT EXISTS client_policies",
+        "CREATE TABLE IF NOT EXISTS tenant_policies",
     ]:
         assert table_name in migration
 
@@ -187,7 +187,7 @@ def test_phase_two_foundation_layer_2_artifacts_exist() -> None:
 
     # T016: AgentState TypedDict and graph registry
     assert "class AgentState(TypedDict)" in state_module
-    assert "client_id: str" in state_module
+    assert "tenant_id: str" in state_module
     assert "messages: Annotated[list, add_messages]" in state_module
     assert "pending_tool: str | None" in state_module
 
@@ -215,7 +215,7 @@ def test_phase_two_foundation_layer_2_artifacts_exist() -> None:
     assert "async def load_turns" in session_store
     assert "def _turns_key" in session_store
     assert "def _meta_key" in session_store
-    assert "{client_id}:session:{session_id}:turns" in session_store
+    assert "{tenant_id}:session:{session_id}:turns" in session_store
 
 
 def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
@@ -233,7 +233,7 @@ def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
     assert "async def upsert_fact" in memory_module
     assert "async def search" in memory_module
     assert "async def delete" in memory_module
-    assert "{client_id}_memory" in memory_module
+    assert "{tenant_id}_memory" in memory_module
 
     # T020: Policy registry with hot-reload
     assert "def initialize_policies" in policy_module
@@ -276,7 +276,7 @@ def test_phase_two_foundation_complete_t023_orchestrator_exists() -> None:
     assert "ASYNC = \"async\"" in service_module
 
     assert "class ExecutionRequest" in service_module
-    assert "client_id: str" in service_module
+    assert "tenant_id: str" in service_module
     assert "agent_id: str" in service_module
     assert "input: str" in service_module
     assert "mode: ExecutionMode" in service_module
@@ -326,7 +326,7 @@ def test_user_story_two_sync_invoke_artifacts_exist() -> None:
     # T034 + T037: sync execution + tenant namespace context
     assert "async def _execute_sync" in service_module
     assert "_execute_sync_llm_fallback" in service_module
-    assert '"client_id": request.client_id' in service_module
+    assert '"tenant_id": request.tenant_id' in service_module
     assert "job_id=run_id" in service_module
 
     # T035: route registration

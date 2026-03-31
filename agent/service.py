@@ -7,7 +7,7 @@ Central orchestration point that ties together:
 - Policy enforcement (NeMo Guardrails)
 - LLM interaction (LiteLLM)
 - Observability (Langfuse tracing)
-- Database operations (agent definitions, jobs, clients)
+- Database operations (agent definitions, jobs, tenants)
 
 Provides three execution modes:
   1. Sync (ExecutionMode.SYNC): immediate response, single turn
@@ -44,7 +44,7 @@ class ExecutionRequest:
     """Unified request for agent execution across all modes.
 
     Attributes:
-        client_id: Tenant identifier (UUID)
+        tenant_id: Tenant identifier (UUID)
         agent_id: Agent definition identifier (UUID)
         input: User prompt or task input
         mode: Execution mode (sync, session, async)
@@ -52,7 +52,7 @@ class ExecutionRequest:
         metadata: Optional request metadata
     """
 
-    client_id: str
+    tenant_id: str
     agent_id: str
     input: str
     mode: ExecutionMode
@@ -113,7 +113,7 @@ class AgentService:
 
         result = await service.execute(
             ExecutionRequest(
-                client_id="tenant-1",
+                tenant_id="tenant-1",
                 agent_id="agent-uuid",
                 input="Hello, agent!",
                 mode=ExecutionMode.SYNC,
@@ -175,7 +175,7 @@ class AgentService:
 
         logger.info(
             "execution_started",
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             agent_id=request.agent_id,
             mode=request.mode,
         )
@@ -193,7 +193,7 @@ class AgentService:
         except Exception as e:
             logger.error(
                 "execution_failed",
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 agent_id=request.agent_id,
                 error_type=type(e).__name__,
                 error_message=str(e),
@@ -236,7 +236,7 @@ class AgentService:
 
         # Prepare execution state
         state = {
-            "client_id": request.client_id,
+            "tenant_id": request.tenant_id,
             "job_id": run_id,
             "session_id": None,
             "input": request.input,
@@ -262,7 +262,7 @@ class AgentService:
         try:
             from agent.policy import get_rails, apply_policy
 
-            rails = get_rails(request.client_id)
+            rails = get_rails(request.tenant_id)
             if rails:
                 processed_input, _ = await apply_policy(rails, request.input)
                 state["input"] = processed_input
@@ -275,7 +275,7 @@ class AgentService:
 
             async with ExecutionTraceContext(
                 self.settings,
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 agent_id=request.agent_id,
                 job_id=run_id,
             ) as trace_ctx:
@@ -292,7 +292,7 @@ class AgentService:
         try:
             from agent.policy import get_rails, apply_policy
 
-            rails = get_rails(request.client_id)
+            rails = get_rails(request.tenant_id)
             if rails:
                 output, _ = await apply_policy(rails, output)
         except Exception as e:
@@ -303,7 +303,7 @@ class AgentService:
 
         logger.info(
             "sync_execution_completed",
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             agent_id=request.agent_id,
             execution_time_ms=execution_time_ms,
         )
@@ -338,7 +338,7 @@ class AgentService:
 
         async with ExecutionTraceContext(
             self.settings,
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             agent_id=request.agent_id,
             job_id=run_id,
         ) as trace_ctx:
@@ -399,14 +399,14 @@ class AgentService:
 
         # Load session history
         session_turns = await self.session_store.load_turns(
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             session_id=request.session_id,
         )
 
         # Create session metadata lazily on first use.
         if len(session_turns) == 0:
             await self.session_store.create_session(
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 session_id=request.session_id,
                 agent_id=request.agent_id,
             )
@@ -427,7 +427,7 @@ class AgentService:
         tool_registry = build_tool_registry()
 
         state = {
-            "client_id": request.client_id,
+            "tenant_id": request.tenant_id,
             "job_id": request.session_id,  # Use session_id as pseudo-job
             "session_id": request.session_id,
             "input": request.input,
@@ -454,7 +454,10 @@ class AgentService:
             # Temporary fallback while non-conversational graphs are not registered.
             completion_messages = messages.copy()
             if system_prompt:
-                completion_messages = [{"role": "system", "content": system_prompt}, *completion_messages]
+                completion_messages = [
+                    {"role": "system", "content": system_prompt},
+                    *completion_messages,
+                ]
             completion_messages.append({"role": "user", "content": request.input})
 
             completion = await self.llm_client.create_completion(
@@ -465,12 +468,12 @@ class AgentService:
 
             now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             await self.session_store.append_turn(
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 session_id=request.session_id,
                 turn=SessionTurn(role="user", content=request.input, timestamp=now),
             )
             await self.session_store.append_turn(
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 session_id=request.session_id,
                 turn=SessionTurn(role="assistant", content=output, timestamp=now),
             )
@@ -489,7 +492,7 @@ class AgentService:
 
             async with ExecutionTraceContext(
                 self.settings,
-                client_id=request.client_id,
+                tenant_id=request.tenant_id,
                 agent_id=request.agent_id,
                 job_id=request.session_id,
                 session_id=request.session_id,
@@ -508,12 +511,12 @@ class AgentService:
         # Append turns to session history
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         await self.session_store.append_turn(
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             session_id=request.session_id,
             turn=SessionTurn(role="user", content=request.input, timestamp=now),
         )
         await self.session_store.append_turn(
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             session_id=request.session_id,
             turn=SessionTurn(role="assistant", content=output, timestamp=now),
         )
@@ -523,7 +526,7 @@ class AgentService:
 
         logger.info(
             "session_execution_completed",
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             agent_id=request.agent_id,
             session_id=request.session_id,
             execution_time_ms=execution_time_ms,
@@ -559,7 +562,7 @@ class AgentService:
         # Create job record in PostgreSQL
         job_record = {
             "id": job_id,
-            "client_id": request.client_id,
+            "tenant_id": request.tenant_id,
             "agent_id": request.agent_id,
             "session_id": request.session_id,
             "input_payload": {
@@ -587,7 +590,7 @@ class AgentService:
             try:
                 enqueue_request = self.queue_factory.AgentJobEnqueueRequest(
                     job_id=job_id_created,
-                    client_id=request.client_id,
+                    tenant_id=request.tenant_id,
                     agent_id=request.agent_id,
                     input=request.input,
                     session_id=request.session_id,
@@ -614,7 +617,7 @@ class AgentService:
 
         logger.info(
             "async_execution_enqueued",
-            client_id=request.client_id,
+            tenant_id=request.tenant_id,
             agent_id=request.agent_id,
             job_id=job_id_created,
             rq_job_id=rq_job_id,
