@@ -75,3 +75,35 @@ def test_enqueue_agent_job_uses_queue_and_retry_policy(monkeypatch) -> None:
     assert created["enqueue_kwargs"]["timeout_seconds"] == 45
     assert created["enqueue_kwargs"]["result_ttl_seconds"] == queue_module.DEFAULT_RESULT_TTL_SECONDS
     assert created["enqueue_kwargs"]["failure_ttl_seconds"] == queue_module.DEFAULT_FAILURE_TTL_SECONDS
+
+
+def test_enqueue_job_uses_rq_job_timeout_kwarg(monkeypatch) -> None:
+    created: dict[str, object] = {}
+
+    class _FakeQueue:
+        name = "agent_jobs"
+
+        def enqueue(self, *args, **kwargs):
+            created["enqueue_args"] = args
+            created["enqueue_kwargs"] = kwargs
+            return _DummyJob("rq-job-2")
+
+    class _FakeRetry:
+        def __init__(self, max: int, interval: list[int]) -> None:
+            self.max = max
+            self.interval = interval
+
+    monkeypatch.setitem(__import__("sys").modules, "rq", type("_RQModule", (), {"Retry": _FakeRetry}))
+
+    job = queue_module.enqueue_job(
+        _FakeQueue(),
+        "worker.tasks.run_agent_job",
+        {"job_id": "job-2"},
+        job_id="job-2",
+        tenant_id="tenant-1",
+        timeout_seconds=45,
+    )
+
+    assert job.id == "rq-job-2"
+    assert created["enqueue_kwargs"]["job_timeout"] == 45
+    assert "timeout" not in created["enqueue_kwargs"]

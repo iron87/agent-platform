@@ -131,13 +131,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T051 [P] [US5] Implement async submit/status schemas in api/models/jobs.py
-- [ ] T052 [US5] Implement `POST /jobs` and `GET /jobs/{job_id}` handlers in api/routes/jobs.py
-- [ ] T053 [US5] Implement job repository CRUD + status transitions in agent/repositories/jobs.py
-- [ ] T054 [US5] Implement rq task runner entrypoint and callbacks in worker/tasks.py
+- [X] T051 [P] [US5] Implement async submit/status schemas in api/models/jobs.py
+- [X] T052 [US5] Implement `POST /jobs` and `GET /jobs/{job_id}` handlers in api/routes/jobs.py
+- [X] T053 [US5] Implement job repository CRUD + status transitions in agent/repositories/jobs.py
+- [X] T054 [US5] Implement rq task runner entrypoint and callbacks in worker/tasks.py
 - [X] T055 [US5] Implement enqueue path from API to rq with retry and timeout policy in worker/queue.py
-- [ ] T056 [US5] Implement restart reconciliation loop (rq ↔ postgres status sync) in worker/reconcile.py
-- [ ] T057 [US5] Enforce tenant-scoped job lookup and 404 isolation in api/routes/jobs.py
+- [X] T056 [US5] Implement restart reconciliation loop (rq ↔ postgres status sync) in worker/reconcile.py
+- [X] T057 [US5] Enforce tenant-scoped job lookup and 404 isolation in api/routes/jobs.py
 
 **Checkpoint**: Async job lifecycle is reliable and tenant-isolated
 

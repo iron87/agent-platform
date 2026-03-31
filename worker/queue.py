@@ -153,7 +153,7 @@ def enqueue_job(
             job_payload,
             job_id=str(job_id),
             retry=retry_policy,
-            timeout=timeout_seconds,
+            job_timeout=timeout_seconds,
             result_ttl=result_ttl_seconds,
             failure_ttl=failure_ttl_seconds,
             meta=meta or {"tenant_id": tenant_id},

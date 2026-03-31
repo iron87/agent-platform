@@ -88,6 +88,27 @@ services:
       litellm:
         condition: service_healthy
 
+  agent-worker:
+    image: python:3.12-slim
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install -e . >/tmp/agent-worker-pip.log 2>&1 && (python -m worker.reconcile & rq worker \"$RQ_QUEUE_NAME\" --url \"$REDIS_URL\")",
+      ]
+    env_file:
+      - ../.env
+    volumes:
+      - ..:/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

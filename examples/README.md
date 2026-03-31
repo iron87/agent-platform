@@ -6,7 +6,7 @@ This folder contains runnable examples for implemented user stories.
 
 Files:
 - `examples/us2_sync_example.py`: sends a real `POST /api/v1/run` request with auth.
-- `examples/us2_seed_dev.sh`: applies schema + seeds one client and one agent definition for local testing.
+- `examples/us2_seed_dev.sh`: applies schema + seeds one tenant and one agent definition for local testing.
 - `examples/us3_session_example.py`: sends three turns with the same `session_id` to validate session continuity.
 
 ### End-to-end run (local)
@@ -91,6 +91,71 @@ Expected behavior:
 - all three calls return `status=200`
 - all three responses show the same `session_id`
 - turn 3 can reference context from turns 1 and 2
+
+## US5 - Async Job Lifecycle
+
+Files:
+- `examples/us5_async_job_example.py`: submits `POST /api/v1/jobs` and polls `GET /api/v1/jobs/{job_id}` until the job reaches a terminal state.
+
+### Run the async example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+export AGENT_ID="00000000-0000-0000-0000-000000000001"
+export AGENT_ASYNC_INPUT="Analyze the backlog and return a short triage summary"
+export AGENT_TIMEOUT_SECONDS=180
+export AGENT_POLL_INTERVAL_SECONDS=2
+python examples/us5_async_job_example.py
+```
+
+Expected behavior:
+- `submit_status: 202`
+- the job moves through `pending` / `running`
+- final state becomes `completed` with `output` and optional `trace_id`
+- if approval-gated tools are introduced later, a paused run will surface as `interrupted` with `pending_approval_id`
+
+### Manual API flow
+
+```bash
+curl -X POST http://localhost:8000/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $AGENT_API_KEY" \
+  -d '{"agent_id":"00000000-0000-0000-0000-000000000001","input":"Analyze the backlog"}'
+
+curl -H "X-API-Key: $AGENT_API_KEY" \
+  http://localhost:8000/api/v1/jobs/<job-id>
+```
+
+### Troubleshooting
+
+If you get `Connection refused`:
+- start Docker Desktop / the Docker daemon.
+- bootstrap or restart the stack:
+
+```bash
+bash infra/bootstrap-light.sh
+# or the full stack:
+bash infra/bootstrap.sh
+```
+
+If you get `HTTP 401`:
+- verify `AGENT_API_KEY` matches the value in `.env`.
+- rerun `bash examples/us2_seed_dev.sh` to reseed the demo tenant and agent.
+
+If the job stays in `pending`:
+- recreate the updated worker service:
+
+```bash
+docker compose -f infra/docker-compose.yml --env-file .env up -d --force-recreate agent-worker
+# or the light stack:
+docker compose -f infra/docker-compose.light.yml --env-file .env up -d --force-recreate agent-worker
+```
+
+- inspect worker logs:
+
+```bash
+docker compose -f infra/docker-compose.yml --env-file .env logs --tail=120 agent-worker
+```
 
 ## US4 - Web Search Tool
 

@@ -195,16 +195,14 @@ services:
   agent-worker:
     image: python:3.12-slim
     working_dir: /workspace
-    command: ["sh", "-c", "sleep infinity"]
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      QDRANT_URL: ${QDRANT_URL}
-      RQ_QUEUE_NAME: ${RQ_QUEUE_NAME}
-      JOB_TIMEOUT_SECONDS: ${JOB_TIMEOUT_SECONDS}
-      WORKER_TTL_SECONDS: ${WORKER_TTL_SECONDS}
-      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS}
-      HITL_TIMEOUT_SECONDS: ${HITL_TIMEOUT_SECONDS}
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install -e . >/tmp/agent-worker-pip.log 2>&1 && (python -m worker.reconcile & rq worker \"$RQ_QUEUE_NAME\" --url \"$REDIS_URL\")",
+      ]
+    env_file:
+      - ../.env
     volumes:
       - ..:/workspace
     depends_on:
@@ -213,6 +211,8 @@ services:
       redis:
         condition: service_healthy
       qdrant:
+        condition: service_healthy
+      litellm:
         condition: service_healthy
 
 volumes:

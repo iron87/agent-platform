@@ -253,12 +253,31 @@ Agency-level census suggestion:
 - Examples index: [examples/README.md](examples/README.md)
 - Sync invocation: [examples/us2_sync_example.py](examples/us2_sync_example.py)
 - Session flow: [examples/us3_session_example.py](examples/us3_session_example.py)
+- Async job flow: [examples/us5_async_job_example.py](examples/us5_async_job_example.py)
 - Tool flows:
   - [examples/us4_web_search_example.py](examples/us4_web_search_example.py)
   - [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py)
   - [examples/us4_rest_caller_example.py](examples/us4_rest_caller_example.py)
   - [examples/us4_file_ops_example.py](examples/us4_file_ops_example.py)
   - [examples/us4_tool_agent_graph_example.py](examples/us4_tool_agent_graph_example.py)
+
+### Async API quick reference
+
+```bash
+curl -X POST http://localhost:8000/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $AGENT_API_KEY" \
+  -d '{
+    "agent_id": "00000000-0000-0000-0000-000000000001",
+    "input": "Analyze the backlog and return a short triage summary"
+  }'
+
+curl -H "X-API-Key: $AGENT_API_KEY" \
+  http://localhost:8000/api/v1/jobs/<job-id>
+```
+
+Status values: `pending`, `running`, `completed`, `failed`, `interrupted`.
+On success, `GET /api/v1/jobs/{job_id}` returns the final `output` and `trace_id`.
 
 ## Roadmap
 
@@ -270,7 +289,7 @@ Agency-level census suggestion:
 | Phase 4 | US2 Sync Invocation | ✅ |
 | Phase 5 | US3 Conversational Sessions | ✅ |
 | Phase 6 | US4 Tool-Using Agent (T044-T050) | ✅ |
-| Phase 7 | US5 Async lifecycle completion (T051-T057) | 🚧 |
+| Phase 7 | US5 Async lifecycle completion (T051-T057) | ✅ |
 | Phase 8 | US6 Provider routing/fallback hardening | ⏳ |
 | Phase 9 | US7 Trace review/replay | ⏳ |
 | Phase 10 | US8 Policy enforcement hardening | ⏳ |
