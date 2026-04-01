@@ -302,3 +302,51 @@ callbacks = [h for h in [langfuse_handler] if h is not None]
 | Batch jobs | rq + Retry + PG source of truth + AOF Redis | `worker/tasks.py` + reconciliation loop |
 | LLM gateway | LiteLLM proxy, pinned tag, OTEL Langfuse callback | API key = `LITELLM_MASTER_KEY` in agent |
 | Observability | Langfuse v3 → adds ClickHouse + MinIO containers | **compose adds 2 new services** |
+
+---
+
+## 7. Tenant CLI architecture (FR-043 / FR-044)
+
+**Decision**: Deliver a **hybrid CLI**: a Python command surface for automation (`run`, `jobs`, `approvals`, `config`) plus an optional **React Ink** interactive mode for chat-style sessions and approval review.
+
+**Rationale**: The repository and deployment model are already Python-first, so the default CLI path should stay lightweight and script-friendly. React Ink is a good fit for the richer terminal UX requested by the user because it provides interactive input handling, focus management, alternate-screen rendering, and CI-safe fallback behavior.
+
+**Alternatives considered**:
+- **Pure React Ink CLI** — excellent interactive UX, but it would force Node.js for every scripted use case and complicate packaging for simple shell automation.
+- **Pure Python Typer/Rich CLI** — simplest packaging, but it would not satisfy the requested interactive terminal experience as well as Ink.
+
+---
+
+## 8. CLI configuration and auth strategy
+
+**Decision**: Use an explicit profile model backed by env vars and a local config file (`~/.config/2brain/config.toml` or equivalent XDG path). Every command can override `base_url`, `api_key`, `agent_id`, and output mode with flags.
+
+**Rationale**: This respects the constitution’s “Explicit over Implicit” rule, keeps the CLI easy to automate in CI, and avoids hiding tenant credentials inside undocumented local state.
+
+**Alternatives considered**:
+- **Environment variables only** — easy for CI, but clumsy for humans managing multiple tenants/environments.
+- **OS keychain only** — nicer secrecy, but harder to make portable and testable across Linux/macOS development setups.
+
+---
+
+## 9. Approval-flow API gap
+
+**Decision**: Treat approval commands as first-class CLI features, but implement them strictly against the public API contract (`GET /approvals/{approval_id}` and `POST /approvals/{approval_id}/decide`) rather than using direct database or Redis access.
+
+**Rationale**: `spec.md` and `contracts/agent-api.yaml` already define the approval API, while `api/routes/approvals.py` is currently only a stub. Closing this mismatch is necessary to satisfy the user’s clarified scope without violating FR-044.
+
+**Alternatives considered**:
+- **Backdoor direct DB/Redis mutations from the CLI** — rejected because it bypasses auth, policy, and public-contract guarantees.
+- **Shipping run/jobs only and deferring approvals** — rejected because the clarified CLI scope explicitly includes approval actions.
+
+---
+
+## 10. Output and UX policy for the CLI
+
+**Decision**: Every non-interactive CLI command must support `--json` output, while the default human mode uses readable tables/status messages. The Ink layer is reserved for long-running, stateful, or approval-heavy interactions.
+
+**Rationale**: This preserves Unix composability for automation and keeps the React Ink UI focused on the workflows where terminal interactivity adds the most value.
+
+**Alternatives considered**:
+- **TUI-only output** — poor fit for shell scripting and CI.
+- **JSON-only output** — good for machines, but unnecessarily hostile to human operators.

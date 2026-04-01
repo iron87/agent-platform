@@ -345,6 +345,12 @@ class AgentService:
             completion = await self.llm_client.create_completion(
                 model=model_alias,
                 messages=messages,
+                trace_callbacks=trace_ctx.config.get("callbacks", []),
+                trace_context={
+                    "tenant_id": request.tenant_id,
+                    "agent_id": request.agent_id,
+                    "job_id": run_id,
+                },
             )
             trace_id = trace_ctx.trace_id
 

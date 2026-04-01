@@ -318,6 +318,79 @@ curl -s -X POST .../api/v1/approvals/$APPROVAL_ID/decide \
 
 The compose file is fully valid for local dev. The only difference from production:
 - Caddy TLS is disabled (plain HTTP on port 8000).
+
+---
+
+## Part 5 — Tenant CLI Quickstart
+
+The CLI mirrors the public API rather than bypassing it. That means every command still needs the tenant’s `X-API-Key` and the same `agent_id` values used by HTTP clients.
+
+### Step 1 — Configure a local profile
+
+```bash
+export BRAIN_API_BASE_URL="http://localhost:8000/api/v1"
+export BRAIN_API_KEY="sk-2brain-<your-key>"
+
+# planned UX
+2brain config set --profile local-dev \
+  --base-url "$BRAIN_API_BASE_URL" \
+  --api-key "$BRAIN_API_KEY"
+```
+
+### Step 2 — Run a one-shot synchronous invocation
+
+```bash
+2brain run \
+  --profile local-dev \
+  --agent-id 00000000-0000-0000-0000-000000000001 \
+  --input "Summarise this support request" \
+  --json
+```
+
+Expected output shape:
+
+```json
+{
+  "job_id": "...",
+  "output": "...",
+  "trace_id": "lf-...",
+  "session_id": null
+}
+```
+
+### Step 3 — Start or continue a session conversation
+
+```bash
+2brain session chat \
+  --profile local-dev \
+  --agent-id 00000000-0000-0000-0000-000000000001 \
+  --session-id demo-session
+```
+
+This planned command opens the interactive path; when the terminal supports it, the Ink UI can render the conversation history, pending job state, and trace IDs in-place.
+
+### Step 4 — Submit and poll an async job
+
+```bash
+2brain jobs submit \
+  --profile local-dev \
+  --agent-id 00000000-0000-0000-0000-000000000001 \
+  --input "Generate the weekly report"
+
+2brain jobs status --profile local-dev --job-id <job-id>
+2brain jobs wait   --profile local-dev --job-id <job-id>
+```
+
+### Step 5 — Review or decide a pending approval
+
+```bash
+2brain approvals get --profile local-dev --approval-id <approval-id>
+2brain approvals approve --profile local-dev --approval-id <approval-id> --reviewer-id alice@acme.com
+# or
+2brain approvals reject --profile local-dev --approval-id <approval-id> --reason "Missing legal sign-off"
+```
+
+> The approval commands depend on the approval HTTP endpoints documented in `contracts/agent-api.yaml`; the current backend route stub must be completed before these commands can be fully implemented.
 - Log verbosity set to `DEBUG` via `LOG_LEVEL=debug` in `.env`.
 
 ```bash

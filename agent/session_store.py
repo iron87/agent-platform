@@ -19,7 +19,7 @@ from typing import Any
 import redis.asyncio as redis
 import structlog
 
-from agent.models.session import SessionTurn
+from agent.models.session import SessionTurn  # class SessionTurn is re-exported here for session storage APIs.
 
 logger = structlog.get_logger(__name__)
 

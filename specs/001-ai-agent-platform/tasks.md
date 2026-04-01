@@ -151,9 +151,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T058 [US6] Implement LiteLLM alias/fallback runtime config templating in infra/litellm/config.yaml.template
-- [ ] T059 [US6] Implement alias validation against `agent_definitions.model_alias` in agent/repositories/agents.py
-- [ ] T060 [US6] Implement provider fallback warning logging/trace event mapping in agent/llm.py
+- [X] T058 [US6] Implement LiteLLM alias/fallback runtime config templating in infra/litellm/config.yaml.template
+- [X] T059 [US6] Implement alias validation against `agent_definitions.model_alias` in agent/repositories/agents.py
+- [X] T060 [US6] Implement provider fallback warning logging/trace event mapping in agent/llm.py
 - [ ] T061 [US6] Add per-alias/per-tenant budget environment wiring in infra/.env.example
 - [ ] T062 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/conversational.py
 - [ ] T063 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/tool_agent.py
@@ -221,17 +221,40 @@
 
 ---
 
-## Phase 12: Polish & Cross-Cutting Concerns
+## Phase 12: User Story 10 - Tenant CLI Covers the Public API (Priority: P10)
+
+**Goal**: Tenant operators can invoke agents, continue sessions, monitor async jobs, and act on approval requests from a supported CLI instead of hand-writing raw HTTP calls.
+
+**Independent Test**: Configure a CLI profile with `base_url` and `X-API-Key`, then successfully run `2brain run`, `2brain session chat`, `2brain jobs submit|status|wait`, and `2brain approvals get|approve|reject` against the local stack using both human-readable and `--json` output.
+
+### Implementation for User Story 10
+
+- [ ] T084 [P] [US10] Add CLI contract/integration coverage for run, jobs, and approvals flows in tests/cli/test_cli_commands.py
+- [ ] T085 [P] [US10] Register the Python `2brain` console entrypoint and root command groups in pyproject.toml, cli/__init__.py, and cli/main.py
+- [ ] T086 [P] [US10] Implement profile persistence and `2brain config set` resolution for `--profile`, `--base-url`, and `--api-key` in cli/config.py and cli/commands/config.py
+- [ ] T087 [US10] Implement the shared async HTTP API wrapper, auth header injection, and public-contract error mapping in cli/client.py
+- [ ] T088 [US10] Implement `2brain run` and `2brain session chat` commands with stable `--json` output in cli/commands/run.py
+- [ ] T089 [P] [US10] Implement `2brain jobs submit|status|wait` polling commands in cli/commands/jobs.py
+- [ ] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in cli/commands/approvals.py
+- [ ] T091 [P] [US10] Implement Rich/table presenters that preserve the raw API schema for `--json` mode in cli/presenters.py
+- [ ] T092 [US10] Create the optional React Ink UI package, API adapter, and interactive screens in packages/tenant-cli-ui/package.json, packages/tenant-cli-ui/src/index.tsx, and packages/tenant-cli-ui/src/screens/
+- [ ] T093 [US10] Document CLI installation, profile setup, and end-to-end usage in README.md, specs/001-ai-agent-platform/quickstart.md, and specs/001-ai-agent-platform/contracts/cli-commands.md
+
+**Checkpoint**: Tenants can use the CLI as a first-class consumer of the same authenticated public API contracts.
+
+---
+
+## Phase 13: Polish & Cross-Cutting Concerns
 
 **Purpose**: Harden quality, docs, and operational readiness across all stories
 
-- [ ] T084 [P] Add graph unit test coverage for conversational/tool/batch paths in tests/graphs/
-- [ ] T085 [P] Add route test coverage for auth/validation/error paths in tests/routes/
-- [ ] T086 [P] Add integration scenarios for bootstrap, sync invoke, async job, policy, and HITL in tests/integration/
-- [ ] T087 Run quickstart scenario validation and update steps for accuracy in specs/001-ai-agent-platform/quickstart.md
-- [ ] T088 Validate API contract consistency between implementation and OpenAPI in specs/001-ai-agent-platform/contracts/agent-api.yaml
-- [ ] T089 Validate `.env.example` completeness against runtime config loader in infra/.env.example and api/config.py
-- [ ] T090 Add final operations runbook notes for restart/upgrade/troubleshooting in docs/operations.md
+- [ ] T094 [P] Add graph unit test coverage for conversational/tool/batch paths in tests/graphs/
+- [ ] T095 [P] Add route test coverage for auth/validation/error paths in tests/routes/
+- [ ] T096 [P] Add integration scenarios for bootstrap, sync invoke, async job, policy, HITL, and CLI flows in tests/integration/ and tests/cli/
+- [ ] T097 Run quickstart scenario validation and update steps for accuracy in specs/001-ai-agent-platform/quickstart.md
+- [ ] T098 Validate API contract consistency between implementation and OpenAPI in specs/001-ai-agent-platform/contracts/agent-api.yaml
+- [ ] T099 Validate `.env.example` completeness against runtime config loader in infra/.env.example and api/config.py
+- [ ] T100 Add final operations runbook notes for restart/upgrade/troubleshooting in docs/operations.md
 
 ---
 
@@ -241,8 +264,8 @@
 
 - **Phase 1 (Setup)**: Starts immediately
 - **Phase 2 (Foundational)**: Depends on Phase 1; blocks all user stories
-- **Phases 3–11 (User Stories)**: Depend on Phase 2 completion; implement in priority order for incremental delivery
-- **Phase 12 (Polish)**: Depends on completion of selected user stories
+- **Phases 3–12 (User Stories)**: Depend on Phase 2 completion; implement in priority order for incremental delivery
+- **Phase 13 (Polish)**: Depends on completion of selected user stories
 
 ### User Story Dependencies
 
@@ -255,6 +278,7 @@
 - **US7 (P7)**: Depends on US2 and observability wiring
 - **US8 (P8)**: Depends on US2 and policy subsystem from foundational tasks
 - **US9 (P9)**: Depends on US4 tool execution flow + US5 job state management
+- **US10 (P10)**: Depends on US2 for sync invocation, US3 for session chat, US5 for async jobs, and US9 for full approval-action coverage
 
 ### Within Each User Story
 
@@ -271,7 +295,8 @@
 - **Foundational**: T010, T013, T017, T018, T019, T020, T021 can run in parallel once T009/T012 exist
 - **US4**: T044–T047 can run in parallel (independent tool modules)
 - **US6**: T062–T064 can run in parallel (different graph files)
-- **Polish**: T084–T086 can run in parallel (separate test suites)
+- **US10**: T084, T085, T086, and T091 can run in parallel; after T087, T089 and T090 can proceed in parallel
+- **Polish**: T094–T096 can run in parallel (separate test suites)
 
 ### Parallel Example: User Story 4
 
@@ -290,6 +315,14 @@ Task: "T063 [US6] Ensure alias-only calls in agent/graphs/tool_agent.py"
 Task: "T064 [US6] Ensure alias-only calls in agent/graphs/batch_agent.py"
 ```
 
+### Parallel Example: User Story 10
+
+```bash
+Task: "T085 [US10] Register the Python `2brain` console entrypoint and root command groups in pyproject.toml, cli/__init__.py, and cli/main.py"
+Task: "T086 [US10] Implement profile persistence and `2brain config set` resolution in cli/config.py and cli/commands/config.py"
+Task: "T091 [US10] Implement Rich/table presenters that preserve the raw API schema for `--json` mode in cli/presenters.py"
+```
+
 ---
 
 ## Implementation Strategy
@@ -306,13 +339,15 @@ Task: "T064 [US6] Ensure alias-only calls in agent/graphs/batch_agent.py"
 1. Add US2 to enable external invocation contract
 2. Add US3 and US4 for core interactive/tool value
 3. Add US5 for async production workloads
-4. Add US6, US7, US8, US9 for resilience, observability, compliance, safety
-5. Execute Phase 12 polish before production handoff
+4. Add US6, US7, US8, and US9 for resilience, observability, compliance, and safety
+5. Add US10 to expose the same tenant-facing flows through the CLI and optional Ink UI
+6. Execute Phase 13 polish before production handoff
 
 ### Suggested MVP Scope
 
 - **Strict MVP**: US1 only (platform bootstraps and is healthy)
 - **Practical MVP**: US1 + US2 (bootstrapped platform + callable agent API)
+- **CLI delivery slice**: US10 after US2 + US5, with approval subcommands completing once US9 is in place
 
 ---
 
@@ -320,7 +355,7 @@ Task: "T064 [US6] Ensure alias-only calls in agent/graphs/batch_agent.py"
 
 All tasks in this file follow required checklist format:
 - Checkbox prefix: `- [ ]`
-- Sequential task IDs: `T001` … `T090`
+- Sequential task IDs: `T001` … `T100`
 - `[P]` marker only on parallelizable tasks
 - `[US#]` labels only in user story phases
 - Every task includes an explicit target file path

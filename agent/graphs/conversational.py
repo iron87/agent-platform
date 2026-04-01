@@ -21,6 +21,8 @@ async def _generate_response(state: AgentState) -> dict[str, Any]:
     llm_client = state.get("_llm_client")
     model_alias = str(state.get("_model_alias") or "default")
     system_prompt = str(state.get("_system_prompt") or "")
+    callbacks = list(state.get("_trace_callbacks") or [])
+    agent_definition = dict(state.get("_agent_definition") or {})
 
     messages = _normalize_messages(state.get("messages", []))
     if system_prompt:
@@ -34,6 +36,13 @@ async def _generate_response(state: AgentState) -> dict[str, Any]:
         completion = await llm_client.create_completion(
             model=model_alias,
             messages=messages,
+            trace_callbacks=callbacks,
+            trace_context={
+                "tenant_id": state.get("tenant_id"),
+                "agent_id": agent_definition.get("id"),
+                "job_id": state.get("job_id"),
+                "session_id": state.get("session_id"),
+            },
         )
         output = completion.choices[0].message.content or ""
 

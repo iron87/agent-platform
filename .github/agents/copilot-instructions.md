@@ -1,8 +1,10 @@
 # 2brain-platform Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-14
+Auto-generated from all feature plans. Last updated: 2026-04-01
 
 ## Active Technologies
+- Python 3.12+ for backend and automation-friendly CLI commands; TypeScript + Node.js 22 for the optional React Ink TUI + FastAPI, Pydantic, httpx, structlog, existing SQLAlchemy/Redis/RQ stack; Typer + Rich for Python CLI ergonomics; React + Ink for interactive terminal flows (001-ai-agent-platform)
+- PostgreSQL, Redis, Qdrant, Langfuse; CLI itself remains stateless except for a local profile/config file (001-ai-agent-platform)
 
 - (001-ai-agent-platform)
 
@@ -13,7 +15,7 @@ src/
 tests/
 # 2brain-platform — GitHub Copilot Instructions
 
-Auto-generated from feature plan `001-ai-agent-platform`. Last updated: 2026-03-14.
+Auto-generated from feature plan `001-ai-agent-platform`. Last updated: 2026-04-01.
 
 ## Active Feature
 
@@ -143,3 +145,6 @@ curl http://localhost:8000/health
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+## Recent Changes
+- 001-ai-agent-platform: Added Python 3.12+ for backend and automation-friendly CLI commands; TypeScript + Node.js 22 for the optional React Ink TUI + FastAPI, Pydantic, httpx, structlog, existing SQLAlchemy/Redis/RQ stack; Typer + Rich for Python CLI ergonomics; React + Ink for interactive terminal flows

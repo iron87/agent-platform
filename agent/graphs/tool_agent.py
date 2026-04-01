@@ -155,6 +155,13 @@ async def _tool_agent_step(state: AgentState) -> dict[str, Any]:
             messages=messages,
             tools=tools_payload or None,
             tool_choice="auto" if tools_payload else None,
+            trace_callbacks=callbacks,
+            trace_context={
+                "tenant_id": state.get("tenant_id"),
+                "agent_id": agent_definition.get("id"),
+                "job_id": state.get("job_id"),
+                "session_id": state.get("session_id"),
+            },
         )
 
         choice = completion.choices[0]

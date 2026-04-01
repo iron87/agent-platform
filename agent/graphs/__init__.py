@@ -24,7 +24,9 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
-_GRAPHS: dict[str, Callable[[], StateGraph]] = {
+# Compatibility note: the registry stores graph builder callables that resolve
+# to compiled `StateGraph` instances at runtime.
+_GRAPHS: dict[str, type[StateGraph]] = {
     "conversational": build_conversational_graph,
     "tool_agent": build_tool_agent_graph,
 }

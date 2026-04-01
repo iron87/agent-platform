@@ -45,6 +45,12 @@ Expected output:
 - a non-empty `output`
 - a `trace_id` value (can be null if observability disabled/unavailable)
 
+### LiteLLM routing note
+
+- The LiteLLM config is rendered from `infra/litellm/config.yaml.template` / `config.light.yaml.template` at container start.
+- The `default` alias automatically falls back to `fast` when the primary provider errors or times out.
+- After changing alias env vars or fallback wiring, restart the `litellm` service (or rerun `bash infra/bootstrap-light.sh`).
+
 ### Troubleshooting
 
 If you get `HTTP 401`:

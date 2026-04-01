@@ -5,6 +5,12 @@
 **Status**: Draft
 **Input**: User description: "A self-hosted platform for an AI engineering agency to design, deploy, and operate AI agents for tenants."
 
+## Clarifications
+
+### Session 2026-04-01
+
+- Q: What API surface should the CLI cover? → A: The CLI must cover all tenant-facing API flows: synchronous invocation, asynchronous job submission and status polling, session-based conversations, and approval actions. Purely operational/admin endpoints remain outside the initial CLI scope.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - One-Command Platform Bootstrap (Priority: P1)
@@ -330,6 +336,11 @@ gracefully on rejection) and the trace reflects the approval event.
 - **FR-040**: Every endpoint except `GET /health` MUST require authentication via `X-API-Key` header. Unauthenticated requests MUST return 401.
 - **FR-041**: API keys and all secrets MUST be sourced exclusively from environment variables. They MUST NOT appear in source code, logs, or trace data.
 - **FR-042**: Tools that execute code or write to the filesystem MUST run in an isolated sandbox. Sandbox failures MUST be reported as tool errors, not platform crashes.
+
+**CLI Access**
+
+- **FR-043**: The platform MUST provide a CLI interface that exposes all tenant-facing API operations, including synchronous invocation, session-based conversations, asynchronous job submission/status retrieval, and approval actions.
+- **FR-044**: The CLI MUST call the same external API contracts used by HTTP integrators rather than bypassing authentication, policy checks, or tenant-isolation controls.
 
 ### Key Entities
 

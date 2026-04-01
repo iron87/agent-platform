@@ -308,3 +308,36 @@ pending ──► approved ──► (job resumes to running)
 | `approval_requests` | `status` | Only `pending` requests can be approved/rejected/timed out |
 | `RunRequest` | `input` | Max 32 768 tokens (enforced before graph execution) |
 | `ApprovalDecision` | `reviewer_id` | Must be non-empty string |
+
+---
+
+## CLI-Local Entities
+
+The CLI does **not** introduce new server-side persistence tables. It adds a small local configuration model and an in-memory interaction state for terminal workflows.
+
+### `CLIProfile` (local config file)
+
+| Field | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `str` | yes | Human-friendly profile alias such as `local-dev` or `acme-prod` |
+| `base_url` | `AnyHttpUrl` | yes | Base URL for the 2brain API |
+| `api_key` | `SecretStr` | yes | Tenant-scoped API key sent via `X-API-Key` |
+| `default_agent_id` | `UUID \| None` | no | Optional default agent for run/session commands |
+| `output_mode` | `Literal["table", "json"]` | yes | Default rendering mode |
+| `poll_interval_seconds` | `int` | yes | Default polling cadence for jobs and approvals |
+| `interactive_ui` | `bool` | yes | Whether to prefer Ink mode when a TTY is available |
+
+### `CLIInvocationState` (interactive session only)
+
+| Field | Type | Description |
+|------|------|-------------|
+| `active_screen` | `Literal["home", "chat", "jobs", "approvals"]` | Current Ink view |
+| `session_id` | `str \| None` | Current conversation namespace |
+| `job_id` | `UUID \| None` | Currently selected async job |
+| `pending_approval_id` | `UUID \| None` | Currently selected approval request |
+| `last_trace_id` | `str \| None` | Latest trace surfaced to the operator |
+| `last_error` | `str \| None` | Last API or validation error shown in the UI |
+
+### CLI request wrappers
+
+The Python CLI and the Ink UI will serialize the **same payload shapes** already defined for `RunRequest`, `JobSubmitRequest`, `JobStatus`, and `ApprovalDecision`. No CLI-only server contract is introduced.

@@ -64,10 +64,25 @@ bash infra/bootstrap-light.sh
 
 | Area | Capability | Status |
 |------|------------|--------|
-| LLM routing | Alias-based models (default/fast/embedding) | ✅ |
+| LLM routing | Alias-based models (`default` / `fast` / `embedding`) + `default → fast` fallback | ✅ |
 | Memory | Redis session + Qdrant semantic memory | ✅ |
-| Tracing | Langfuse callback integration | ✅ |
+| Tracing | Langfuse callback integration + fallback event hooks | ✅ |
 | Replay | Trace replay workflow | ⏳ |
+
+## LLM Routing & Fallback
+
+LiteLLM is booted from `infra/litellm/config.yaml.template` (or `infra/litellm/config.light.yaml.template` in the lightweight stack). The file is rendered from the active `.env` values when the container starts, so alias changes stay configuration-only.
+
+| Alias | Purpose | Runtime behavior |
+|------|---------|------------------|
+| `default` | primary reasoning/chat alias | retries the primary provider and automatically falls back to `fast` |
+| `fast` | low-latency chat alias | used directly for lightweight tasks and as the `default` fallback |
+| `embedding` | semantic-memory embedding alias | uses the configured embedding endpoint |
+
+Operational notes:
+- set `LOCAL_DEFAULT_MODEL`, `LOCAL_FAST_MODEL`, `LOCAL_EMBEDDING_MODEL`, and the matching `*_API_BASE` variables in `.env`
+- after changing alias or fallback wiring, restart the LiteLLM service (`bash infra/bootstrap-light.sh` is enough for local dev)
+- `agent_definitions.model_alias` is validated at runtime and must stay within `default`, `fast`, or `embedding`
 
 ## Tenant Registry (Agency / Tenant / Agent Census)
 

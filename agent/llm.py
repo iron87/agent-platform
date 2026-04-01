@@ -4,13 +4,14 @@ This module provides a lightweight async OpenAI-compatible client that routes
 all LLM calls through the LiteLLM proxy gateway. Model names are restricted to
 three pre-configured aliases:
   - 'default': Primary LLM for reasoning tasks
-  - 'fast': Lightweight/embedded models for latency-sensitive tasks
+  - 'fast': Lower-latency chat fallback and short-form tasks
   - 'embedding': Embedding model for semantic memory
 
 The LiteLLM proxy handles provider routing and automatic fallback, making the
 agent code cloud-agnostic.
 """
 
+from collections.abc import Mapping
 from typing import Any
 
 from openai import AsyncOpenAI
@@ -20,6 +21,7 @@ logger = structlog.get_logger(__name__)
 
 # Valid aliases that agents are permitted to use
 VALID_ALIASES = {"default", "fast", "embedding"}
+_TRACE_ONLY_KWARGS = {"trace_callbacks", "trace_context"}
 
 
 class LiteLLMClientError(Exception):
@@ -28,14 +30,94 @@ class LiteLLMClientError(Exception):
     pass
 
 
+def _header_get(headers: Mapping[str, Any] | Any | None, key: str) -> str | None:
+    """Fetch a response header case-insensitively from mapping-like objects."""
+    if headers is None:
+        return None
+
+    getter = getattr(headers, "get", None)
+    if callable(getter):
+        value = getter(key)
+        if value is not None:
+            return str(value)
+        value = getter(key.lower())
+        if value is not None:
+            return str(value)
+
+    items = getattr(headers, "items", None)
+    if callable(items):
+        for header_name, header_value in items():
+            if str(header_name).lower() == key.lower():
+                return str(header_value)
+
+    return None
+
+
+def _emit_custom_trace_event(callbacks: list[Any] | None, *, name: str, data: dict[str, Any]) -> None:
+    """Emit a custom trace event without allowing tracing failures to break execution."""
+    for callback in callbacks or []:
+        on_custom_event = getattr(callback, "on_custom_event", None)
+        if callable(on_custom_event):
+            try:
+                on_custom_event(name=name, data=data)
+            except TypeError:
+                on_custom_event(name, data)
+            except Exception:
+                logger.debug(
+                    "litellm_trace_callback_failed",
+                    callback_type=type(callback).__name__,
+                    event_name=name,
+                )
+
+
+def _build_fallback_payload(
+    *,
+    requested_alias: str,
+    response: Any,
+    raw_response: Any | None,
+    trace_context: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Build a structured fallback payload from LiteLLM response metadata."""
+    headers = getattr(raw_response, "headers", None)
+    response_model = str(getattr(response, "model", "") or "")
+
+    fallback_from = _header_get(headers, "x-litellm-fallback-from")
+    fallback_to = _header_get(headers, "x-litellm-fallback-to")
+    reason = _header_get(headers, "x-litellm-fallback-reason")
+    provider_model = _header_get(headers, "x-litellm-model-id")
+
+    if not fallback_to and response_model in VALID_ALIASES and response_model != requested_alias:
+        fallback_to = response_model
+
+    if not fallback_from and fallback_to and fallback_to != requested_alias:
+        fallback_from = requested_alias
+
+    if not any((fallback_from, fallback_to, reason)):
+        return None
+
+    payload: dict[str, Any] = {
+        "requested_alias": requested_alias,
+        "fallback_from": fallback_from or requested_alias,
+        "fallback_to": fallback_to or response_model or requested_alias,
+        "reason": reason or "provider_fallback",
+        "provider_model": provider_model,
+    }
+
+    for key, value in (trace_context or {}).items():
+        if value is not None:
+            payload[str(key)] = value
+
+    return payload
+
+
 class LiteLLMClient:
     """Thin wrapper around AsyncOpenAI for LiteLLM gateway routing.
 
     Features:
     - Alias-only model calls (no provider strings in agent code)
     - Automatic provider fallback via LiteLLM config
-    - Failed-open logging (warns but doesn't raise on LiteLLM unavailability)
-    - Per-client API key injection via Langfuse callback
+    - Structured warning logs and trace events for fallback routing
+    - Trace-only kwargs are stripped before sending requests to the OpenAI SDK
 
     Usage:
         client = LiteLLMClient(
@@ -46,11 +128,6 @@ class LiteLLMClient:
             model="default",  # Must be 'default', 'fast', or 'embedding'
             messages=[...],
         )
-
-    Notes:
-        - All methods are async-first (designed for FastAPI routes)
-        - Messages are passed through to OpenAI chat completion API unchanged
-        - Trace callbacks (for Langfuse) are automatically handled by LiteLLM
     """
 
     def __init__(
@@ -116,16 +193,46 @@ class LiteLLMClient:
             message_count=len(messages),
         )
 
+        request_kwargs = dict(kwargs)
+        trace_callbacks = list(request_kwargs.pop("trace_callbacks", []) or [])
+        trace_context = dict(request_kwargs.pop("trace_context", {}) or {})
+        raw_response: Any | None = None
+
         try:
-            response = await self._client.chat.completions.create(
-                model=model,
-                messages=messages,
-                **kwargs,
+            raw_completion_client = getattr(self._client.chat.completions, "with_raw_response", None)
+            raw_create = getattr(raw_completion_client, "create", None)
+
+            if callable(raw_create):
+                raw_response = await raw_create(
+                    model=model,
+                    messages=messages,
+                    **request_kwargs,
+                )
+                parser = getattr(raw_response, "parse", None)
+                response = parser() if callable(parser) else raw_response
+            else:
+                response = await self._client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    **request_kwargs,
+                )
+
+            payload = _build_fallback_payload(
+                requested_alias=model,
+                response=response,
+                raw_response=raw_response,
+                trace_context=trace_context,
             )
+            if payload is not None:
+                logger.warning("litellm_provider_fallback", **payload)
+                _emit_custom_trace_event(trace_callbacks, name="llm_fallback", data=payload)
+
+            choice = response.choices[0] if getattr(response, "choices", None) else None
             logger.debug(
                 "litellm_completion_success",
                 model=model,
-                finish_reason=response.choices[0].finish_reason,
+                response_model=getattr(response, "model", None),
+                finish_reason=getattr(choice, "finish_reason", None),
             )
             return response
         except Exception as e:
@@ -168,11 +275,13 @@ class LiteLLMClient:
             input_count=len(input) if isinstance(input, list) else 1,
         )
 
+        request_kwargs = {key: value for key, value in kwargs.items() if key not in _TRACE_ONLY_KWARGS}
+
         try:
             response = await self._client.embeddings.create(
                 model=model,
                 input=input,
-                **kwargs,
+                **request_kwargs,
             )
             logger.debug("litellm_embedding_success", model=model)
             return response

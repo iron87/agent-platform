@@ -126,7 +126,13 @@ services:
 
   litellm:
     image: ghcr.io/berriai/litellm:main-stable
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    entrypoint: []
+    command:
+      [
+        "sh",
+        "-c",
+        "python3 -c \"import os, pathlib; src = pathlib.Path('/app/config.yaml.template').read_text(encoding='utf-8'); pathlib.Path('/tmp/config.yaml').write_text(os.path.expandvars(src), encoding='utf-8')\" && exec litellm --config /tmp/config.yaml --port 4000",
+      ]
     environment:
       # LiteLLM requires a DB when master_key is set (for virtual key validation + UI)
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -150,7 +156,7 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./litellm/config.yaml.template:/app/config.yaml:ro
+      - ./litellm/config.yaml.template:/app/config.yaml.template:ro
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')\" || exit 1"]
       interval: 15s
