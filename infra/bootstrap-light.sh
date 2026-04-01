@@ -46,6 +46,17 @@ get_env_value() {
   grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d'=' -f2-
 }
 
+ensure_default_value() {
+  local key="$1"
+  local default_value="$2"
+  local current
+  current="$(grep -E "^${key}=" "$ENV_FILE" | cut -d'=' -f2- || true)"
+
+  if [[ -z "$current" ]]; then
+    set_env_value "$key" "$default_value"
+  fi
+}
+
 ensure_secret() {
   local key="$1"
   local prefix="${2:-}"
@@ -106,6 +117,8 @@ main() {
   ensure_secret POSTGRES_PASSWORD
   ensure_secret REDIS_PASSWORD
   ensure_secret LITELLM_MASTER_KEY "sk-litellm-"
+  ensure_default_value LITELLM_TENANT_BUDGET_TOTAL "1000.0"
+  ensure_default_value LITELLM_TENANT_BUDGET_DURATION "30d"
 
   local postgres_host postgres_port postgres_db postgres_user postgres_password
   local redis_host redis_port redis_password

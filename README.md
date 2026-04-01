@@ -81,8 +81,9 @@ LiteLLM is booted from `infra/litellm/config.yaml.template` (or `infra/litellm/c
 
 Operational notes:
 - set `LOCAL_DEFAULT_MODEL`, `LOCAL_FAST_MODEL`, `LOCAL_EMBEDDING_MODEL`, and the matching `*_API_BASE` variables in `.env`
+- tune `LITELLM_BUDGET_DEFAULT`, `LITELLM_BUDGET_FAST`, `LITELLM_BUDGET_EMBEDDING`, plus the tenant-wide defaults `LITELLM_TENANT_BUDGET_TOTAL` and `LITELLM_TENANT_BUDGET_DURATION` for virtual-key budgeting
 - after changing alias or fallback wiring, restart the LiteLLM service (`bash infra/bootstrap-light.sh` is enough for local dev)
-- `agent_definitions.model_alias` is validated at runtime and must stay within `default`, `fast`, or `embedding`
+- `agent_definitions.model_alias` is validated at runtime and must stay within `default`, `fast`, or `embedding`; conversational, tool, and batch graphs all resolve through these aliases only
 
 ## Tenant Registry (Agency / Tenant / Agent Census)
 

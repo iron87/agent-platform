@@ -154,10 +154,10 @@
 - [X] T058 [US6] Implement LiteLLM alias/fallback runtime config templating in infra/litellm/config.yaml.template
 - [X] T059 [US6] Implement alias validation against `agent_definitions.model_alias` in agent/repositories/agents.py
 - [X] T060 [US6] Implement provider fallback warning logging/trace event mapping in agent/llm.py
-- [ ] T061 [US6] Add per-alias/per-tenant budget environment wiring in infra/.env.example
-- [ ] T062 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/conversational.py
-- [ ] T063 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/tool_agent.py
-- [ ] T064 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/batch_agent.py
+- [X] T061 [US6] Add per-alias/per-tenant budget environment wiring in infra/.env.example
+- [X] T062 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/conversational.py
+- [X] T063 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/tool_agent.py
+- [X] T064 [US6] Ensure all graph model calls use aliases only (`default`/`fast`/`embedding`) in agent/graphs/batch_agent.py
 
 **Checkpoint**: LLM routing is provider-agnostic and resilient
 

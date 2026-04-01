@@ -49,6 +49,8 @@ Expected output:
 
 - The LiteLLM config is rendered from `infra/litellm/config.yaml.template` / `config.light.yaml.template` at container start.
 - The `default` alias automatically falls back to `fast` when the primary provider errors or times out.
+- The same alias-only routing path is used by sync, session, tool-agent, and batch/async examples.
+- You can tune the alias caps with `LITELLM_BUDGET_*` and the default tenant cap with `LITELLM_TENANT_BUDGET_TOTAL` in `.env`.
 - After changing alias env vars or fallback wiring, restart the `litellm` service (or rerun `bash infra/bootstrap-light.sh`).
 
 ### Troubleshooting

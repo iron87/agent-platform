@@ -70,6 +70,17 @@ get_env_value() {
 	grep -E "^${key}=" "$ENV_FILE" | head -n1 | cut -d'=' -f2-
 }
 
+ensure_default_value() {
+	local key="$1"
+	local default_value="$2"
+	local current
+	current="$(grep -E "^${key}=" "$ENV_FILE" | cut -d'=' -f2- || true)"
+
+	if [[ -z "$current" ]]; then
+		set_env_value "$key" "$default_value"
+	fi
+}
+
 ensure_env_file() {
 	if [[ ! -f "$ENV_FILE" ]]; then
 		echo "No .env found — creating from $ENV_EXAMPLE"
@@ -154,6 +165,8 @@ main() {
 	ensure_secret LANGFUSE_SECRET_KEY "sk-lf-"
 	ensure_secret MINIO_ROOT_PASSWORD
 	ensure_secret CLICKHOUSE_PASSWORD
+	ensure_default_value LITELLM_TENANT_BUDGET_TOTAL "1000.0"
+	ensure_default_value LITELLM_TENANT_BUDGET_DURATION "30d"
 
 	# Keep derived connection URLs consistent with generated secrets.
 	local postgres_host postgres_port postgres_db postgres_user postgres_password

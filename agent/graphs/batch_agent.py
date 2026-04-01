@@ -1,4 +1,4 @@
-"""Conversational graph with session-context-aware message construction."""
+"""Batch-oriented LangGraph with alias-only LLM routing."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _resolve_model_alias(state: AgentState) -> str:
     return requested_alias if requested_alias in VALID_ALIASES else "default"
 
 
-async def _generate_response(state: AgentState) -> dict[str, Any]:
+async def _generate_batch_response(state: AgentState) -> dict[str, Any]:
     llm_client = state.get("_llm_client")
     model_alias = _resolve_model_alias(state)
     system_prompt = str(state.get("_system_prompt") or "")
@@ -36,8 +36,7 @@ async def _generate_response(state: AgentState) -> dict[str, Any]:
     messages.append({"role": "user", "content": state["input"]})
 
     if llm_client is None:
-        # Fail-open fallback for tests or minimal environments.
-        output = f"Echo: {state['input']}"
+        output = f"Batch echo: {state['input']}"
     else:
         completion = await llm_client.create_completion(
             model=model_alias,
@@ -63,12 +62,12 @@ async def _generate_response(state: AgentState) -> dict[str, Any]:
     }
 
 
-def build_conversational_graph():
+def build_batch_agent_graph():
     graph = StateGraph(AgentState)
-    graph.add_node("generate_response", _generate_response)
-    graph.add_edge(START, "generate_response")
-    graph.add_edge("generate_response", END)
+    graph.add_node("generate_batch_response", _generate_batch_response)
+    graph.add_edge(START, "generate_batch_response")
+    graph.add_edge("generate_batch_response", END)
     return graph.compile()
 
 
-__all__ = ["build_conversational_graph"]
+__all__ = ["build_batch_agent_graph"]

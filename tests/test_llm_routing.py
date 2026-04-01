@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
 
+from agent.graphs.conversational import build_conversational_graph
 from agent.llm import LiteLLMClient
 from agent.repositories.agents import AgentsRepository
 
@@ -23,6 +25,23 @@ class _RecordingCallback:
 
     def on_custom_event(self, *, name: str, data: dict) -> None:
         self.events.append((name, data))
+
+
+class _RecordingLLM:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    async def create_completion(self, *, model, messages, **kwargs):
+        self.calls.append({"model": model, "messages": messages, "kwargs": kwargs})
+        return SimpleNamespace(
+            model=model,
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content=f"response-via-{model}"),
+                )
+            ],
+        )
 
 
 @pytest.mark.asyncio
@@ -99,3 +118,79 @@ async def test_litellm_client_emits_fallback_event_from_raw_response_headers() -
             },
         )
     ]
+
+
+def test_env_example_documents_alias_and_tenant_budget_controls() -> None:
+    env_example = Path("infra/.env.example").read_text(encoding="utf-8")
+
+    assert "LITELLM_BUDGET_DEFAULT=" in env_example
+    assert "LITELLM_BUDGET_FAST=" in env_example
+    assert "LITELLM_BUDGET_EMBEDDING=" in env_example
+    assert "LITELLM_TENANT_BUDGET_TOTAL=" in env_example
+    assert "LITELLM_TENANT_BUDGET_DURATION=" in env_example
+
+
+@pytest.mark.asyncio
+async def test_conversational_graph_uses_alias_from_state() -> None:
+    llm = _RecordingLLM()
+    graph = build_conversational_graph()
+
+    result = await graph.ainvoke(
+        {
+            "tenant_id": "tenant-demo",
+            "job_id": "job-demo",
+            "session_id": None,
+            "input": "hello",
+            "messages": [],
+            "pending_tool": None,
+            "tool_args": None,
+            "tool_result": None,
+            "tool_events": None,
+            "output": None,
+            "status": "running",
+            "approved": None,
+            "error": None,
+            "_llm_client": llm,
+            "_model_alias": "fast",
+            "_system_prompt": "system",
+            "_agent_definition": {"id": "agent-demo"},
+            "_trace_callbacks": [],
+        }
+    )
+
+    assert result["output"] == "response-via-fast"
+    assert llm.calls[0]["model"] == "fast"
+
+
+@pytest.mark.asyncio
+async def test_batch_graph_uses_alias_from_state() -> None:
+    from agent.graphs.batch_agent import build_batch_agent_graph
+
+    llm = _RecordingLLM()
+    graph = build_batch_agent_graph()
+
+    result = await graph.ainvoke(
+        {
+            "tenant_id": "tenant-demo",
+            "job_id": "job-batch",
+            "session_id": None,
+            "input": "summarize batch results",
+            "messages": [],
+            "pending_tool": None,
+            "tool_args": None,
+            "tool_result": None,
+            "tool_events": None,
+            "output": None,
+            "status": "running",
+            "approved": None,
+            "error": None,
+            "_llm_client": llm,
+            "_model_alias": "default",
+            "_system_prompt": "batch system",
+            "_agent_definition": {"id": "agent-batch"},
+            "_trace_callbacks": [],
+        }
+    )
+
+    assert result["output"] == "response-via-default"
+    assert llm.calls[0]["model"] == "default"

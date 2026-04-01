@@ -70,6 +70,8 @@ class Settings(BaseSettings):
     LITELLM_BUDGET_FAST: float = Field(default=500.0, ge=0.0)
     LITELLM_BUDGET_EMBEDDING: float = Field(default=100.0, ge=0.0)
     LITELLM_BUDGET_DURATION: str = "30d"
+    LITELLM_TENANT_BUDGET_TOTAL: float = Field(default=1000.0, ge=0.0)
+    LITELLM_TENANT_BUDGET_DURATION: str = "30d"
 
     LANGFUSE_HOST: str
     LANGFUSE_PUBLIC_KEY: str

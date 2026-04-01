@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from langgraph.graph import StateGraph
 import structlog
 
+from agent.graphs.batch_agent import build_batch_agent_graph
 from agent.graphs.conversational import build_conversational_graph
 from agent.graphs.tool_agent import build_tool_agent_graph
 
@@ -29,6 +30,7 @@ logger = structlog.get_logger(__name__)
 _GRAPHS: dict[str, type[StateGraph]] = {
     "conversational": build_conversational_graph,
     "tool_agent": build_tool_agent_graph,
+    "batch_agent": build_batch_agent_graph,
 }
 
 

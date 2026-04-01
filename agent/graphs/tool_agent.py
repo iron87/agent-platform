@@ -9,6 +9,7 @@ from typing import Any
 from langgraph.graph import END, START, StateGraph
 
 from agent.graphs.state import AgentState
+from agent.llm import VALID_ALIASES
 from agent.observability import emit_tool_call_span
 from agent.tools import build_openai_tools_payload, build_tool_registry, get_allowed_tools
 
@@ -116,9 +117,14 @@ async def _run_tool_with_retry(
     raise ToolExecutionError(f"tool '{tool_name}' failed after {max_retries + 1} attempts: {last_error}")
 
 
+def _resolve_model_alias(state: AgentState) -> str:
+    requested_alias = str(state.get("_model_alias") or "default").strip()
+    return requested_alias if requested_alias in VALID_ALIASES else "default"
+
+
 async def _tool_agent_step(state: AgentState) -> dict[str, Any]:
     llm_client = state.get("_llm_client")
-    model_alias = str(state.get("_model_alias") or "default")
+    model_alias = _resolve_model_alias(state)
     system_prompt = str(state.get("_system_prompt") or "")
     max_tool_steps = int(state.get("_max_tool_steps") or DEFAULT_MAX_TOOL_STEPS)
     max_tool_retries = int(state.get("_max_tool_retries") or DEFAULT_MAX_TOOL_RETRIES)
