@@ -1,28 +1,30 @@
 flowchart LR
-  Client[Client Systems]
-  Engineer[Agency Engineer]
+  Client[Tenant System / Client]
+  Engineer[Platform Engineer]
 
-  Caddy[Caddy\nReverse Proxy + TLS]
-  API[agent-api\nFastAPI service placeholder]
-  Worker[agent-worker\nRQ worker placeholder]
+  Bootstrap[bootstrap.sh / bootstrap-light.sh]
+  Env[.env + templates]
+  Caddy[Caddy\nReverse Proxy]
+  API[agent-api\nFastAPI]
+  Service[AgentService\nexecution orchestrator]
+  Worker[agent-worker\nRQ worker]
+
+  subgraph Runtime[LangGraph Runtime]
+    Registry[Graph Registry\nagent/graphs/__init__.py]
+    Conversational[conversational graph]
+    ToolAgent[tool_agent graph]
+    BatchAgent[batch_agent graph]
+    Tools[Tool Registry\nweb_search / code_exec / rest_caller / file_ops]
+  end
 
   Postgres[(PostgreSQL)]
   Redis[(Redis)]
   Qdrant[(Qdrant)]
+  LiteLLM[LiteLLM\nAliases: default / fast / embedding]
+  LocalLLM[Local / Cloud LLM provider]
+  Langfuse[Langfuse\nfail-open tracing]
 
-  LiteLLM[LiteLLM\nAlias routing\ndefault, fast, embedding]
-  LocalLLM[Local Model Server\nOllama / vLLM / LM Studio]
-
-  Langfuse[Langfuse]
-  ClickHouse[(ClickHouse)]
-  MinIO[(MinIO)]
-
-  Bootstrap[bootstrap.sh\nsecrets + startup + wait]
-  Env[.env + .env.example]
-  Config[litellm config template]
-
-  Engineer --> Bootstrap
-  Bootstrap --> Env
+  Engineer --> Bootstrap --> Env
   Bootstrap --> Caddy
   Bootstrap --> API
   Bootstrap --> Worker
@@ -31,24 +33,25 @@ flowchart LR
   Bootstrap --> Qdrant
   Bootstrap --> LiteLLM
   Bootstrap --> Langfuse
-  Bootstrap --> ClickHouse
-  Bootstrap --> MinIO
 
-  Client --> Caddy --> API
+  Client --> Caddy --> API --> Service
   API --> Postgres
   API --> Redis
-  API --> Qdrant
-  API --> LiteLLM
+
+  Service --> Registry
+  Registry --> Conversational
+  Registry --> ToolAgent
+  Registry --> BatchAgent
+
+  Service --> Postgres
+  Service --> Redis
+  Service --> Qdrant
+  Service --> LiteLLM
+  ToolAgent --> Tools
 
   Worker --> Redis
   Worker --> Postgres
-  Worker --> Qdrant
+  Worker --> BatchAgent
 
   LiteLLM --> LocalLLM
   LiteLLM --> Langfuse
-  Langfuse --> ClickHouse
-  Langfuse --> MinIO
-  Config --> LiteLLM
-
-  classDef edge fill:#eef7ff,stroke:#4a7bd1,stroke-width:1px;
-  class Client,Engineer,API,Worker,Caddy,LiteLLM,Langfuse,Bootstrap,Env,Config,LocalLLM edge;

@@ -2,7 +2,8 @@
 
 Self-hosted multi-tenant AI agent platform for agencies and internal teams.
 
-Architecture diagram: [docs/architecture.md](docs/architecture.md)
+Architecture diagram: [docs/architecture.md](docs/architecture.md)  
+Reconstructed ADRs: [docs/adrs.md](docs/adrs.md)
 
 ## Overview
 
@@ -84,6 +85,21 @@ Operational notes:
 - tune `LITELLM_BUDGET_DEFAULT`, `LITELLM_BUDGET_FAST`, `LITELLM_BUDGET_EMBEDDING`, plus the tenant-wide defaults `LITELLM_TENANT_BUDGET_TOTAL` and `LITELLM_TENANT_BUDGET_DURATION` for virtual-key budgeting
 - after changing alias or fallback wiring, restart the LiteLLM service (`bash infra/bootstrap-light.sh` is enough for local dev)
 - `agent_definitions.model_alias` is validated at runtime and must stay within `default`, `fast`, or `embedding`; conversational, tool, and batch graphs all resolve through these aliases only
+
+## Architecture & Agent Graphs
+
+In 2brain, the **agent graph** is the runtime workflow that the platform executes after `AgentService` has loaded an `agent_definition`.
+It is the piece that decides how the agent moves from input to output, not just which model is called.
+
+| Graph type | File | Purpose |
+|---|---|---|
+| `conversational` | `agent/graphs/conversational.py` | sync and session chat |
+| `tool_agent` | `agent/graphs/tool_agent.py` | multi-step tool use with allowlists |
+| `batch_agent` | `agent/graphs/batch_agent.py` | async / backend-oriented job processing |
+
+Useful references:
+- detailed architecture view: [`docs/architecture.md`](docs/architecture.md)
+- reconstructed implementation ADRs: [`docs/adrs.md`](docs/adrs.md)
 
 ## Tenant Registry (Agency / Tenant / Agent Census)
 
@@ -306,11 +322,12 @@ On success, `GET /api/v1/jobs/{job_id}` returns the final `output` and `trace_id
 | Phase 5 | US3 Conversational Sessions | ✅ |
 | Phase 6 | US4 Tool-Using Agent (T044-T050) | ✅ |
 | Phase 7 | US5 Async lifecycle completion (T051-T057) | ✅ |
-| Phase 8 | US6 Provider routing/fallback hardening | ⏳ |
+| Phase 8 | US6 Provider routing/fallback hardening | ✅ |
 | Phase 9 | US7 Trace review/replay | ⏳ |
 | Phase 10 | US8 Policy enforcement hardening | ⏳ |
 | Phase 11 | US9 HITL approvals | ⏳ |
-| Phase 12 | Polish and cross-cutting tests/docs | ⏳ |
+| Phase 12 | US10 Tenant CLI | ⏳ |
+| Phase 13 | Polish and cross-cutting tests/docs | ⏳ |
 
 ## Developer Section
 
