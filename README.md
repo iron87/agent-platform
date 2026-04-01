@@ -280,6 +280,103 @@ Agency-level census suggestion:
 
 - until an agencies table exists, encode agency in tenants.name (for example Agency A / Team Alpha) or add an agency tag in a metadata convention managed by your provisioning scripts.
 
+## Tenant CLI (`2brain`)
+
+A React Ink/TypeScript CLI for interacting with the platform from the terminal.
+Source: `packages/tenant-cli/`
+
+### Install (local dev)
+
+```bash
+npm install
+npm --workspace @2brain/tenant-cli run build
+npm link --workspace @2brain/tenant-cli   # makes `2brain` available globally
+```
+
+Or without installing, pass `-- <args>` via the root workspace script:
+
+```bash
+npm run cli:dev -- --help
+```
+
+### Configure a profile
+
+```bash
+2brain config set \
+  --base-url http://localhost:8000/api/v1 \
+  --api-key sk-your-tenant-key
+
+# Named profiles (e.g. staging, prod)
+2brain config set --profile staging \
+  --base-url https://staging.example.com/api/v1 \
+  --api-key sk-staging-key
+
+2brain config list
+2brain config get --profile staging
+2brain config delete staging
+```
+
+Profiles are stored at `~/.config/2brain/config.json`.  
+`--base-url` and `--api-key` also read from `BRAIN_BASE_URL` / `BRAIN_API_KEY` env vars as fallback.
+
+### Run an agent (sync)
+
+```bash
+2brain run --agent-id <uuid> --input "Ciao, chi sei?"
+
+# with a specific profile
+2brain run --agent-id <uuid> --input "test" --profile staging
+
+# JSON output (useful for scripting)
+2brain run --agent-id <uuid> --input "test" --json
+```
+
+### Session chat (interactive)
+
+```bash
+2brain session chat --agent-id <uuid> --session-id <session-uuid>
+# Type /exit to quit
+```
+
+### Async jobs
+
+```bash
+# Submit and get job_id immediately
+2brain jobs submit --agent-id <uuid> --input "Analizza il backlog"
+
+# Check status
+2brain jobs status --job-id <uuid>
+
+# Submit and block until terminal state (default timeout 300s)
+2brain jobs wait --job-id <uuid>
+2brain jobs wait --job-id <uuid> --timeout 120 --json
+```
+
+### Human-in-the-loop approvals
+
+```bash
+# View a pending approval
+2brain approvals get --approval-id <uuid>
+
+# Approve
+2brain approvals decide --approval-id <uuid> --reviewer-id ops@example.com --approve
+
+# Reject with reason
+2brain approvals decide --approval-id <uuid> --reviewer-id ops@example.com \
+  --reason "tool call out of scope"
+```
+
+### Global flags (all commands)
+
+| Flag | Description |
+|------|-------------|
+| `--profile <name>` | Use a named stored profile (default: `default`) |
+| `--base-url <url>` | Override API base URL for this invocation |
+| `--api-key <key>` | Override API key for this invocation |
+| `--json` | Output machine-readable JSON instead of text |
+
+---
+
 ## API & Examples
 
 - Examples index: [examples/README.md](examples/README.md)

@@ -1,0 +1,12 @@
+{
+  "name": "2brain-platform-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "cli:build": "npm --workspace @2brain/tenant-cli run build",
+    "cli:test": "npm --workspace @2brain/tenant-cli run test",
+    "cli:dev": "npm --workspace @2brain/tenant-cli run dev --"
+  }
+}

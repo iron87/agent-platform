@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-01 | **Spec**: [../spec.md](../spec.md)
 
-This contract defines the planned tenant-facing CLI surface and maps each command to the existing public HTTP API. The CLI is a **client of the API**, not a privileged control path.
+This contract defines the planned tenant-facing **React Ink / TypeScript** CLI surface and maps each command to the existing public HTTP API. The CLI is a **client of the API**, not a privileged control path.
 
 ---
 
@@ -19,7 +19,7 @@ This contract defines the planned tenant-facing CLI surface and maps each comman
 | `2brain approvals approve` | Approve a gated action | `POST /approvals/{approval_id}/decide` |
 | `2brain approvals reject` | Reject a gated action | `POST /approvals/{approval_id}/decide` |
 | `2brain config set` | Store local CLI profile | local only |
-| `2brain ui` | Launch optional React Ink UI | same endpoints as above |
+| `2brain ui` | Launch the full-screen Ink workspace/dashboard | same endpoints as above |
 
 ---
 
@@ -28,7 +28,7 @@ This contract defines the planned tenant-facing CLI surface and maps each comman
 1. All networked commands MUST accept either `--profile <name>` or explicit `--base-url` + `--api-key` flags.
 2. All networked commands MUST send `X-API-Key` and `Content-Type: application/json` where applicable.
 3. Every command MUST support `--json` for machine-readable output.
-4. Human-friendly output is allowed by default, but must not change the underlying JSON schema returned with `--json`.
+4. When attached to a TTY, human-friendly Ink rendering is allowed by default, but it must not change the underlying JSON schema returned with `--json`.
 5. The CLI MUST never talk directly to Postgres, Redis, or internal worker queues.
 
 ---

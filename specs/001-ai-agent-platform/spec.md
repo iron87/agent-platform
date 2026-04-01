@@ -10,6 +10,7 @@
 ### Session 2026-04-01
 
 - Q: What API surface should the CLI cover? → A: The CLI must cover all tenant-facing API flows: synchronous invocation, asynchronous job submission and status polling, session-based conversations, and approval actions. Purely operational/admin endpoints remain outside the initial CLI scope.
+- Q: What implementation stack should the CLI use? → A: The CLI should be implemented primarily with **React Ink / TypeScript**, not as a Python CLI. It must still support `--json` output for scripting and automation.
 
 ## User Scenarios & Testing *(mandatory)*
 

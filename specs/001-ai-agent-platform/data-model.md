@@ -340,4 +340,4 @@ The CLI does **not** introduce new server-side persistence tables. It adds a sma
 
 ### CLI request wrappers
 
-The Python CLI and the Ink UI will serialize the **same payload shapes** already defined for `RunRequest`, `JobSubmitRequest`, `JobStatus`, and `ApprovalDecision`. No CLI-only server contract is introduced.
+The Ink CLI (including its non-interactive `--json` mode) will serialize the **same payload shapes** already defined for `RunRequest`, `JobSubmitRequest`, `JobStatus`, and `ApprovalDecision`. No CLI-only server contract is introduced.

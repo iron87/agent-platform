@@ -5,18 +5,18 @@
 
 ## Summary
 
-Extend the existing 2brain platform with a tenant-facing CLI that exposes the same authenticated API operations already defined in the spec: synchronous runs, session-based conversations, async job submission/status polling, and approval review/decision flows. The implementation will be **Python-first for scriptable commands** and add an **optional React Ink interactive UI** for richer terminal chat/approval experiences, while keeping the FastAPI service as the single authority for auth, tenant isolation, policy checks, and execution orchestration.
+Extend the existing 2brain platform with a tenant-facing CLI that exposes the same authenticated API operations already defined in the spec: synchronous runs, session-based conversations, async job submission/status polling, and approval review/decision flows. The implementation will be **React Ink / TypeScript first**, using a Node-based `2brain` CLI as the primary interface while still supporting stable `--json` output for scripting and automation. The FastAPI service remains the single authority for auth, tenant isolation, policy checks, and execution orchestration.
 
 A notable implementation dependency is that `api/routes/approvals.py` is currently only a stub, while `spec.md` and `contracts/agent-api.yaml` already define the approval endpoints. The CLI plan therefore includes closing that API gap rather than bypassing the public contract.
 
 ## Technical Context
 
-**Language/Version**: Python 3.12+ for backend and automation-friendly CLI commands; TypeScript + Node.js 22 for the optional React Ink TUI  
-**Primary Dependencies**: FastAPI, Pydantic, httpx, structlog, existing SQLAlchemy/Redis/RQ stack; Typer + Rich for Python CLI ergonomics; React + Ink for interactive terminal flows  
+**Language/Version**: Python 3.12+ for the backend; TypeScript + Node.js 22 for the primary Ink-based CLI  
+**Primary Dependencies**: FastAPI, Pydantic, structlog, existing SQLAlchemy/Redis/RQ stack on the backend; React + Ink, TypeScript, and a Node HTTP client for the CLI  
 **Storage**: PostgreSQL, Redis, Qdrant, Langfuse; CLI itself remains stateless except for a local profile/config file  
-**Testing**: `pytest`, `pytest-asyncio`, FastAPI contract/integration tests; `ink-testing-library` or Vitest for the optional Ink layer  
+**Testing**: `pytest`, `pytest-asyncio`, FastAPI contract/integration tests; `ink-testing-library` or Vitest for the Ink CLI layer  
 **Target Platform**: Linux and macOS terminals, plus non-interactive CI shells  
-**Project Type**: Self-hosted Python web platform with a companion tenant CLI client  
+**Project Type**: Self-hosted Python web platform with a companion Ink/Node tenant CLI  
 **Performance Goals**: Human-readable CLI commands should start in under 1 second locally; polling/refresh defaults should keep async and approval state visibly current within ~2 seconds; CLI must add negligible overhead beyond current API latency  
 **Constraints**: CLI must use the public HTTP API only; no auth bypasses or direct DB access; non-interactive mode must support JSON output for scripting; no streaming required in this version  
 **Scale/Scope**: Cover all FR-043/FR-044 tenant-facing flows for a single-host deployment, supporting multiple tenant operators and concurrent long-running jobs
@@ -32,7 +32,7 @@ A notable implementation dependency is that `api/routes/approvals.py` is current
 - ✅ **Async by Default**: network I/O in the CLI will use async HTTP clients and non-blocking polling loops.
 - ✅ **API Authentication on Every External Endpoint**: the CLI will send `X-API-Key` and consume the same public endpoints as any tenant integration.
 - ✅ **README Is a Living Task Ledger**: README and `quickstart.md` are updated as part of this planning iteration.
-- ⚠️ **Complexity note — optional second runtime**: React Ink requires a Node/TypeScript package. This is acceptable because it remains an optional interactive shell layered on top of the Python-first command surface rather than becoming a required runtime for basic automation.
+- ⚠️ **Complexity note — extra Node runtime**: React Ink requires a Node/TypeScript package for the tenant CLI. This is acceptable because the product direction is explicitly Ink-first, and `--json` mode still covers automation needs.
 
 **Gate Result**: **PASS** — no blocking constitution violations; one justified complexity note is tracked below.
 
@@ -70,24 +70,23 @@ agent/
 worker/
 └── queue.py
 
-cli/
-├── __init__.py
-├── main.py              # Python entrypoint for run/jobs/approvals/config
-├── client.py            # async httpx wrapper around the public API
-├── config.py            # profile + env resolution
-├── presenters.py        # table/json renderers
-└── commands/
-    ├── run.py
-    ├── jobs.py
-    ├── approvals.py
-    └── config.py
-
-packages/tenant-cli-ui/
+packages/tenant-cli/
 ├── package.json
+├── tsconfig.json
 ├── src/
-│   ├── index.tsx        # Ink entrypoint
-│   ├── screens/
-│   └── api.ts           # calls the same HTTP API
+│   ├── cli.tsx          # `2brain` Ink entrypoint
+│   ├── index.ts         # package/bin export
+│   ├── config.ts        # profile + env resolution
+│   ├── output.ts        # json/plain output selection
+│   ├── api/
+│   │   └── client.ts    # shared HTTP wrapper around the public API
+│   ├── commands/
+│   │   ├── run.tsx
+│   │   ├── chat.tsx
+│   │   ├── jobs.tsx
+│   │   ├── approvals.tsx
+│   │   └── config.tsx
+│   └── ui/
 └── tests/
 
 tests/
@@ -96,10 +95,10 @@ tests/
 └── cli/
 ```
 
-**Structure Decision**: Keep the authoritative platform runtime in the existing Python services, add a **Python CLI package** in-repo for stable/scriptable commands, and isolate the **React Ink UI** in an optional package dedicated to interactive terminal experiences. This keeps automation simple while still supporting the richer UX explicitly requested for the CLI.
+**Structure Decision**: Keep the authoritative platform runtime in the existing Python services, and build the tenant CLI directly as an **Ink/Node package** in-repo. The CLI itself is the interactive experience, while `--json` mode preserves scriptability without maintaining a second Python command surface.
 
 ## Complexity Tracking
 
 | Violation / Complexity | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Optional Node/TypeScript package for Ink UI | Needed to provide the requested React Ink interactive terminal UX for chat and approval review | A pure Python CLI would be simpler but would not deliver the requested rich TUI; a pure Ink-only CLI would hurt scripting and repo alignment |
+| Node/TypeScript runtime for the tenant CLI | Needed because the CLI is intentionally built with React Ink rather than Python | A pure Python CLI was rejected by product direction; `--json` mode covers scripting without requiring a second implementation |

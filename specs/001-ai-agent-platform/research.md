@@ -307,13 +307,13 @@ callbacks = [h for h in [langfuse_handler] if h is not None]
 
 ## 7. Tenant CLI architecture (FR-043 / FR-044)
 
-**Decision**: Deliver a **hybrid CLI**: a Python command surface for automation (`run`, `jobs`, `approvals`, `config`) plus an optional **React Ink** interactive mode for chat-style sessions and approval review.
+**Decision**: Deliver an **Ink-first CLI** in TypeScript/Node.js. The `2brain` command itself is built with React Ink and provides both interactive terminal UX and explicit `--json` output for automation.
 
-**Rationale**: The repository and deployment model are already Python-first, so the default CLI path should stay lightweight and script-friendly. React Ink is a good fit for the richer terminal UX requested by the user because it provides interactive input handling, focus management, alternate-screen rendering, and CI-safe fallback behavior.
+**Rationale**: Product direction is to use Ink rather than Python for the CLI. React Ink gives the requested interactive terminal behavior for chat, jobs, and approvals, while `--json` mode preserves shell/CI composability.
 
 **Alternatives considered**:
-- **Pure React Ink CLI** — excellent interactive UX, but it would force Node.js for every scripted use case and complicate packaging for simple shell automation.
-- **Pure Python Typer/Rich CLI** — simplest packaging, but it would not satisfy the requested interactive terminal experience as well as Ink.
+- **Hybrid Python + Ink CLI** — rejected because it duplicates the command surface and increases maintenance cost for the same public API.
+- **Pure Python Typer/Rich CLI** — rejected because it does not meet the preferred Ink-based UX direction.
 
 ---
 
@@ -343,9 +343,9 @@ callbacks = [h for h in [langfuse_handler] if h is not None]
 
 ## 10. Output and UX policy for the CLI
 
-**Decision**: Every non-interactive CLI command must support `--json` output, while the default human mode uses readable tables/status messages. The Ink layer is reserved for long-running, stateful, or approval-heavy interactions.
+**Decision**: The Ink CLI is the primary tenant interface, but every command must still support `--json` output and a non-interactive path for scripts, pipes, and CI.
 
-**Rationale**: This preserves Unix composability for automation and keeps the React Ink UI focused on the workflows where terminal interactivity adds the most value.
+**Rationale**: This preserves Unix composability for automation while keeping React Ink as the default operator experience.
 
 **Alternatives considered**:
 - **TUI-only output** — poor fit for shell scripting and CI.

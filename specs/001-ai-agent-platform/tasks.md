@@ -229,16 +229,16 @@
 
 ### Implementation for User Story 10
 
-- [ ] T084 [P] [US10] Add CLI contract/integration coverage for run, jobs, and approvals flows in tests/cli/test_cli_commands.py
-- [ ] T085 [P] [US10] Register the Python `2brain` console entrypoint and root command groups in pyproject.toml, cli/__init__.py, and cli/main.py
-- [ ] T086 [P] [US10] Implement profile persistence and `2brain config set` resolution for `--profile`, `--base-url`, and `--api-key` in cli/config.py and cli/commands/config.py
-- [ ] T087 [US10] Implement the shared async HTTP API wrapper, auth header injection, and public-contract error mapping in cli/client.py
-- [ ] T088 [US10] Implement `2brain run` and `2brain session chat` commands with stable `--json` output in cli/commands/run.py
-- [ ] T089 [P] [US10] Implement `2brain jobs submit|status|wait` polling commands in cli/commands/jobs.py
-- [ ] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in cli/commands/approvals.py
-- [ ] T091 [P] [US10] Implement Rich/table presenters that preserve the raw API schema for `--json` mode in cli/presenters.py
-- [ ] T092 [US10] Create the optional React Ink UI package, API adapter, and interactive screens in packages/tenant-cli-ui/package.json, packages/tenant-cli-ui/src/index.tsx, and packages/tenant-cli-ui/src/screens/
-- [ ] T093 [US10] Document CLI installation, profile setup, and end-to-end usage in README.md, specs/001-ai-agent-platform/quickstart.md, and specs/001-ai-agent-platform/contracts/cli-commands.md
+- [X] T084 [P] [US10] Add Ink CLI contract/integration coverage for run, jobs, and approvals flows in tests/cli/test_cli_commands.py and packages/tenant-cli/tests/
+- [X] T085 [P] [US10] Create the Node workspace, package manifest, and Ink-based `2brain` entrypoint in package.json, packages/tenant-cli/package.json, and packages/tenant-cli/src/cli.tsx
+- [X] T086 [P] [US10] Implement profile persistence and `2brain config set` resolution for `--profile`, `--base-url`, and `--api-key` in packages/tenant-cli/src/config.ts and packages/tenant-cli/src/commands/config.tsx
+- [X] T087 [US10] Implement the shared async HTTP API wrapper, auth header injection, and public-contract error mapping in packages/tenant-cli/src/api/client.ts
+- [X] T088 [US10] Implement `2brain run` and `2brain session chat` Ink flows with stable `--json` output in packages/tenant-cli/src/commands/run.tsx and packages/tenant-cli/src/commands/chat.tsx
+- [X] T089 [P] [US10] Implement `2brain jobs submit|status|wait` polling commands in packages/tenant-cli/src/commands/jobs.tsx
+- [ ] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in packages/tenant-cli/src/commands/approvals.tsx
+- [ ] T091 [P] [US10] Implement Ink presenters, TTY detection, and JSON fallback mode in packages/tenant-cli/src/ui/ and packages/tenant-cli/src/output.ts
+- [ ] T092 [US10] Add packaging/build/release wiring for the Ink CLI in packages/tenant-cli/tsconfig.json, packages/tenant-cli/src/index.ts, and npm scripts
+- [ ] T093 [US10] Document Ink CLI installation, profile setup, and end-to-end usage in README.md, specs/001-ai-agent-platform/quickstart.md, and specs/001-ai-agent-platform/contracts/cli-commands.md
 
 **Checkpoint**: Tenants can use the CLI as a first-class consumer of the same authenticated public API contracts.
 
@@ -318,9 +318,9 @@ Task: "T064 [US6] Ensure alias-only calls in agent/graphs/batch_agent.py"
 ### Parallel Example: User Story 10
 
 ```bash
-Task: "T085 [US10] Register the Python `2brain` console entrypoint and root command groups in pyproject.toml, cli/__init__.py, and cli/main.py"
-Task: "T086 [US10] Implement profile persistence and `2brain config set` resolution in cli/config.py and cli/commands/config.py"
-Task: "T091 [US10] Implement Rich/table presenters that preserve the raw API schema for `--json` mode in cli/presenters.py"
+Task: "T085 [US10] Create the Ink-based `2brain` entrypoint and package manifest in packages/tenant-cli/"
+Task: "T086 [US10] Implement profile persistence and `2brain config set` resolution in packages/tenant-cli/src/config.ts and packages/tenant-cli/src/commands/config.tsx"
+Task: "T091 [US10] Implement Ink presenters and JSON fallback mode in packages/tenant-cli/src/ui/ and packages/tenant-cli/src/output.ts"
 ```
 
 ---

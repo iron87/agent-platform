@@ -75,9 +75,9 @@ They are written after the fact to capture why the platform looks the way it doe
 - **Decision**: Make bootstrap scripts idempotent, preserve existing secrets by default, and write migrations so they can be applied repeatedly without harm.
 - **Consequences**: Local/dev workflows are safer and more repeatable; bootstrap and migration scripts carry a bit more logic.
 
-## ADR-011 — Keep the CLI as a consumer of the public tenant-facing API
+## ADR-011 — Build the tenant CLI with React Ink while keeping it on the public API
 
 - **Status**: Accepted (planned / partially documented)
-- **Context**: A future tenant CLI should not bypass auth, policy, or isolation guarantees.
-- **Decision**: The planned `2brain` CLI will call the same `/run`, `/jobs`, and approval endpoints used by HTTP integrators.
-- **Consequences**: One public contract is preserved; admin-only shortcuts are intentionally avoided.
+- **Context**: The CLI should provide a richer terminal UX and the product direction is to avoid a separate Python CLI surface.
+- **Decision**: The planned `2brain` CLI is Ink/TypeScript-based, but it still calls the same `/run`, `/jobs`, and approval endpoints used by HTTP integrators.
+- **Consequences**: The operator UX is richer, and the public API remains the single integration contract; the repo now carries a Node/TypeScript CLI package in addition to the Python backend.
