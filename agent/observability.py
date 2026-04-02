@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
+
+def fallback_trace_id(execution_id: str) -> str:
+    """Return a deterministic local trace id when Langfuse is unavailable."""
+    return f"local-{execution_id}"
+
 def _serialize_trace_value(value: Any, *, max_len: int = 4000) -> str:
     """Serialize a value for tracing payloads with bounded size."""
     try:
@@ -46,6 +51,13 @@ def create_langfuse_handler(
     Returns:
         CallbackHandler instance, or None if initialization failed
     """
+    if not bool(getattr(settings, "LANGFUSE_ENABLED", True)):
+        logger.warning(
+            "langfuse_disabled_fail_open",
+            message="LANGFUSE_ENABLED=false; continuing without external tracing",
+        )
+        return None
+
     try:
         from langfuse.langchain import CallbackHandler
 
@@ -269,6 +281,13 @@ class ExecutionTraceContext:
     async def __aenter__(self) -> "ExecutionTraceContext":
         """Enter async context manager."""
         self.handler = create_langfuse_handler(self.settings)
+        if self.handler is None:
+            logger.warning(
+                "langfuse_unavailable_fail_open",
+                tenant_id=self.tenant_id,
+                job_id=self.job_id,
+                message="Proceeding without Langfuse tracing",
+            )
         self.config["callbacks"] = build_execution_callbacks(self.handler)
 
         inject_trace_metadata(
@@ -305,6 +324,7 @@ class ExecutionTraceContext:
 
 __all__ = [
     "create_langfuse_handler",
+    "fallback_trace_id",
     "inject_trace_metadata",
     "build_execution_callbacks",
     "emit_tool_call_span",

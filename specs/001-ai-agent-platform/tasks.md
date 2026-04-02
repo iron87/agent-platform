@@ -171,11 +171,11 @@
 
 ### Implementation for User Story 7
 
-- [ ] T065 [US7] Add trace metadata propagation (`tenant_id`, `agent_id`, `job_id`) in agent/observability.py
-- [ ] T066 [US7] Ensure API responses always include execution `trace_id` in api/models/run.py and api/models/jobs.py
-- [ ] T067 [US7] Implement trace-id correlation logging fields in api/logging.py
-- [ ] T068 [US7] Implement replay helper endpoint/service integration in api/routes/agents.py and agent/service.py
-- [ ] T069 [US7] Add fail-open warning path when Langfuse is unavailable in agent/observability.py
+- [X] T065 [US7] Add trace metadata propagation (`tenant_id`, `agent_id`, `job_id`) in agent/observability.py
+- [X] T066 [US7] Ensure API responses always include execution `trace_id` in api/models/run.py and api/models/jobs.py
+- [X] T067 [US7] Implement trace-id correlation logging fields in api/logging.py
+- [X] T068 [US7] Implement replay helper endpoint/service integration in api/routes/agents.py and agent/service.py
+- [X] T069 [US7] Add fail-open warning path when Langfuse is unavailable in agent/observability.py
 
 **Checkpoint**: Trace lookup and replay workflow is operational
 

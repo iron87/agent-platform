@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any
 
 import structlog
 
@@ -46,3 +47,19 @@ def configure_logging(log_level: str = "info") -> None:
 
 def get_logger(name: str):
     return structlog.get_logger(name)
+
+
+def bind_correlation_context(**values: Any) -> None:
+    """Bind correlation fields (e.g. trace_id) to structlog contextvars."""
+    normalized: dict[str, Any] = {}
+    for key, value in values.items():
+        if value is None:
+            continue
+        normalized[key] = str(value)
+    if normalized:
+        structlog.contextvars.bind_contextvars(**normalized)
+
+
+def clear_correlation_context() -> None:
+    """Clear all bound structlog contextvars for the active request context."""
+    structlog.contextvars.clear_contextvars()

@@ -200,6 +200,34 @@ class AgentService:
             )
             raise
 
+    async def replay_trace(
+        self,
+        request: ExecutionRequest,
+        *,
+        source_trace_id: str,
+    ) -> ExecutionResult:
+        """Replay an execution by re-submitting input linked to an existing trace id."""
+        metadata = dict(request.metadata or {})
+        metadata["replay_of_trace_id"] = source_trace_id
+
+        replay_request = ExecutionRequest(
+            tenant_id=request.tenant_id,
+            agent_id=request.agent_id,
+            input=request.input,
+            mode=request.mode,
+            session_id=request.session_id,
+            metadata=metadata,
+        )
+
+        logger.info(
+            "execution_replay_requested",
+            tenant_id=request.tenant_id,
+            agent_id=request.agent_id,
+            source_trace_id=source_trace_id,
+            mode=request.mode,
+        )
+        return await self.execute(replay_request)
+
     async def _execute_sync(self, request: ExecutionRequest) -> ExecutionResult:
         """Execute in synchronous mode (immediate response, single turn).
 
@@ -271,7 +299,7 @@ class AgentService:
 
         # Execute graph
         try:
-            from agent.observability import ExecutionTraceContext
+            from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
 
             async with ExecutionTraceContext(
                 self.settings,
@@ -281,7 +309,7 @@ class AgentService:
             ) as trace_ctx:
                 state["_trace_callbacks"] = trace_ctx.config.get("callbacks", [])
                 result = await graph.ainvoke(state, config=trace_ctx.config)
-                trace_id = trace_ctx.trace_id
+                trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(run_id)
 
         except Exception as e:
             logger.error("graph_execution_failed_sync", error=str(e))
@@ -326,7 +354,7 @@ class AgentService:
 
         This keeps US2 operational before graph implementations are available.
         """
-        from agent.observability import ExecutionTraceContext
+        from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
 
         system_prompt = self._load_prompt_text(agent_def.get("prompt_file"))
         messages: list[dict[str, str]] = []
@@ -352,7 +380,7 @@ class AgentService:
                     "job_id": run_id,
                 },
             )
-            trace_id = trace_ctx.trace_id
+            trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(run_id)
 
         output = completion.choices[0].message.content or ""
         end_time = datetime.now(timezone.utc)
@@ -465,11 +493,27 @@ class AgentService:
                     *completion_messages,
                 ]
             completion_messages.append({"role": "user", "content": request.input})
+            from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
 
-            completion = await self.llm_client.create_completion(
-                model=str(agent_def.get("model_alias") or "default"),
-                messages=completion_messages,
-            )
+            async with ExecutionTraceContext(
+                self.settings,
+                tenant_id=request.tenant_id,
+                agent_id=request.agent_id,
+                job_id=request.session_id,
+                session_id=request.session_id,
+            ) as trace_ctx:
+                completion = await self.llm_client.create_completion(
+                    model=str(agent_def.get("model_alias") or "default"),
+                    messages=completion_messages,
+                    trace_callbacks=trace_ctx.config.get("callbacks", []),
+                    trace_context={
+                        "tenant_id": request.tenant_id,
+                        "agent_id": request.agent_id,
+                        "job_id": request.session_id,
+                        "session_id": request.session_id,
+                    },
+                )
+                trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(request.session_id)
             output = completion.choices[0].message.content or ""
 
             now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -488,13 +532,13 @@ class AgentService:
             execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
             return ExecutionResult(
                 output=output,
-                trace_id=None,
+                trace_id=trace_id,
                 session_id=request.session_id,
                 execution_time_ms=execution_time_ms,
             )
 
         try:
-            from agent.observability import ExecutionTraceContext
+            from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
 
             async with ExecutionTraceContext(
                 self.settings,
@@ -505,7 +549,7 @@ class AgentService:
             ) as trace_ctx:
                 state["_trace_callbacks"] = trace_ctx.config.get("callbacks", [])
                 result = await graph.ainvoke(state, config=trace_ctx.config)
-                trace_id = trace_ctx.trace_id
+                trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(request.session_id)
 
         except Exception as e:
             logger.error("graph_execution_failed_session", error=str(e))

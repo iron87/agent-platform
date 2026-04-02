@@ -39,5 +39,18 @@ class RunRequest(APIModel):
 class RunResponse(APIModel):
     job_id: UUID
     output: str
-    trace_id: str | None = None
+    trace_id: str
     session_id: str | None = None
+
+
+class ReplayRequest(APIModel):
+    trace_id: str = Field(min_length=1)
+    agent_id: UUID
+    input: str = Field(min_length=1, max_length=131072)
+    session_id: str | None = Field(default=None, max_length=128)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("session_id")
+    @classmethod
+    def normalize_replay_session_id(cls, value: str | None) -> str | None:
+        return RunRequest.normalize_session_id(value)

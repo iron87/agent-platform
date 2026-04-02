@@ -165,6 +165,33 @@ docker compose -f infra/docker-compose.light.yml --env-file .env up -d --force-r
 docker compose -f infra/docker-compose.yml --env-file .env logs --tail=120 agent-worker
 ```
 
+## US7 - Trace Review and Replay
+
+Files:
+- `examples/us7_trace_replay_example.py`: executes a sync run to capture `trace_id`, then replays via `POST /api/v1/run/replay`.
+
+### Run the US7 example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+export AGENT_ID="00000000-0000-0000-0000-000000000001"
+export AGENT_TIMEOUT_SECONDS=180
+python examples/us7_trace_replay_example.py
+```
+
+Optional input overrides:
+
+```bash
+export AGENT_US7_INPUT="Summarize the latest production incident in 5 bullets"
+export AGENT_US7_REPLAY_INPUT="Re-run with stricter focus on timeline"
+python examples/us7_trace_replay_example.py
+```
+
+Expected behavior:
+- `initial_trace_id` is present from the first `POST /api/v1/run`
+- replay call returns `replay_trace_id` and `replay_output`
+- in Langfuse UI, you can search for both trace IDs to compare original vs replayed execution
+
 ## US4 - Web Search Tool
 
 Files:

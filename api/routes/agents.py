@@ -14,7 +14,8 @@ from agent.session_store import RedisSessionStore
 from api.config import Settings
 from api.db import get_db_session
 from api.deps import TenantContext, get_current_tenant
-from api.models.run import RunRequest, RunResponse
+from api.logging import bind_correlation_context, clear_correlation_context
+from api.models.run import ReplayRequest, RunRequest, RunResponse
 
 router = APIRouter(tags=["agents"])
 
@@ -55,6 +56,13 @@ async def run_agent(
 	tenant: Annotated[TenantContext, Depends(get_current_tenant)],
 	session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> RunResponse:
+	clear_correlation_context()
+	bind_correlation_context(
+		tenant_id=tenant.tenant_id,
+		agent_id=payload.agent_id,
+		session_id=payload.session_id,
+	)
+
 	settings: Settings = request.app.state.settings
 	service = _build_agent_service(session, settings)
 
@@ -72,6 +80,7 @@ async def run_agent(
 
 	try:
 		result = await service.execute(execution_request)
+		bind_correlation_context(trace_id=result.trace_id, job_id=result.job_id)
 	except AgentNotFoundError as exc:
 		raise HTTPException(
 			status_code=status.HTTP_404_NOT_FOUND,
@@ -92,6 +101,75 @@ async def run_agent(
 			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
 			detail=f"Agent execution failed: {exc}",
 		) from exc
+	finally:
+		clear_correlation_context()
+
+	return RunResponse(
+		job_id=UUID(result.job_id) if result.job_id else uuid4(),
+		output=result.output,
+		trace_id=result.trace_id,
+		session_id=result.session_id,
+	)
+
+
+@router.post("/run/replay", response_model=RunResponse, status_code=status.HTTP_200_OK)
+async def replay_trace(
+	payload: ReplayRequest,
+	request: Request,
+	tenant: Annotated[TenantContext, Depends(get_current_tenant)],
+	session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> RunResponse:
+	clear_correlation_context()
+	bind_correlation_context(
+		tenant_id=tenant.tenant_id,
+		agent_id=payload.agent_id,
+		session_id=payload.session_id,
+		replay_of_trace_id=payload.trace_id,
+	)
+
+	settings: Settings = request.app.state.settings
+	service = _build_agent_service(session, settings)
+
+	execution_request = ExecutionRequest(
+		tenant_id=str(tenant.tenant_id),
+		agent_id=str(payload.agent_id),
+		input=payload.input,
+		mode=ExecutionMode.SESSION if payload.session_id else ExecutionMode.SYNC,
+		session_id=payload.session_id,
+		metadata={
+			**payload.metadata,
+			"tenant_id": str(tenant.tenant_id),
+		},
+	)
+
+	try:
+		result = await service.replay_trace(
+			execution_request,
+			source_trace_id=payload.trace_id,
+		)
+		bind_correlation_context(trace_id=result.trace_id, job_id=result.job_id)
+	except AgentNotFoundError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_404_NOT_FOUND,
+			detail=str(exc),
+		) from exc
+	except ValueError as exc:
+		if "not found" in str(exc).lower():
+			raise HTTPException(
+				status_code=status.HTTP_404_NOT_FOUND,
+				detail=str(exc),
+			) from exc
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=str(exc),
+		) from exc
+	except Exception as exc:
+		raise HTTPException(
+			status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+			detail=f"Trace replay failed: {exc}",
+		) from exc
+	finally:
+		clear_correlation_context()
 
 	return RunResponse(
 		job_id=UUID(result.job_id) if result.job_id else uuid4(),
