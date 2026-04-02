@@ -14,10 +14,38 @@ from agent.session_store import RedisSessionStore
 from api.config import Settings
 from api.db import get_db_session
 from api.deps import TenantContext, get_current_tenant
+from api.models.agents import AgentListResponse, AgentSummary
 from api.logging import bind_correlation_context, clear_correlation_context
 from api.models.run import ReplayRequest, RunRequest, RunResponse
 
 router = APIRouter(tags=["agents"])
+
+
+@router.get("/agents", response_model=AgentListResponse, status_code=status.HTTP_200_OK)
+async def list_agents(
+	tenant: Annotated[TenantContext, Depends(get_current_tenant)],
+	session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AgentListResponse:
+	clear_correlation_context()
+	bind_correlation_context(tenant_id=tenant.tenant_id)
+
+	repo = AgentsRepository(session)
+	try:
+		records = await repo.list_all()
+		items = [
+			AgentSummary(
+				id=UUID(str(record["id"])),
+				name=str(record["name"]),
+				graph_type=str(record["graph_type"]),
+				model_alias=str(record["model_alias"]),
+				version=int(record.get("version") or 1),
+				semantic_memory_enabled=bool(record.get("semantic_memory_enabled")),
+			)
+			for record in records
+		]
+		return AgentListResponse(agents=items)
+	finally:
+		clear_correlation_context()
 
 
 def _normalize_litellm_base_url(base_url: str) -> str:

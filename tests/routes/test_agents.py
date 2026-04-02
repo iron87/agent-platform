@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from agent.service import ExecutionMode, ExecutionResult
+from agent.repositories.agents import AgentsRepository
 from api.deps import TenantContext
 from api.models.run import ReplayRequest, RunRequest
 import api.routes.agents as agents_module
@@ -88,3 +89,31 @@ async def test_replay_trace_reuses_source_trace_id(monkeypatch) -> None:
     replay_request, source_trace_id = fake_service.replays[0]
     assert source_trace_id == "trace-source-001"
     assert replay_request.mode == ExecutionMode.SYNC
+
+
+@pytest.mark.asyncio
+async def test_list_agents_returns_defined_agents(monkeypatch) -> None:
+    tenant = TenantContext(tenant_id=uuid4(), tenant_name="acme", approval_endpoint=None)
+
+    async def fake_list_all(self):
+        return [
+            {
+                "id": uuid4(),
+                "name": "support-triage",
+                "graph_type": "conversational",
+                "model_alias": "default",
+                "version": 2,
+                "semantic_memory_enabled": True,
+            }
+        ]
+
+    monkeypatch.setattr(AgentsRepository, "list_all", fake_list_all)
+
+    response = await agents_module.list_agents(
+        tenant=tenant,
+        session=object(),
+    )
+
+    assert len(response.agents) == 1
+    assert response.agents[0].name == "support-triage"
+    assert response.agents[0].graph_type == "conversational"

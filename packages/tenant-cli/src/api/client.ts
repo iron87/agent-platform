@@ -56,6 +56,19 @@ export interface ApprovalRequest {
   created_at: string;
 }
 
+export interface AgentSummary {
+  id: string;
+  name: string;
+  graph_type: 'conversational' | 'tool_agent' | 'batch_agent';
+  model_alias: 'default' | 'fast' | 'embedding';
+  version: number;
+  semantic_memory_enabled: boolean;
+}
+
+export interface AgentListResponse {
+  agents: AgentSummary[];
+}
+
 const TERMINAL_STATES: ReadonlySet<JobState> = new Set([
   'completed',
   'failed',
@@ -162,5 +175,9 @@ export class ApiClient {
       `/approvals/${approvalId}/decide`,
       decision,
     );
+  }
+
+  async listAgents(): Promise<AgentListResponse> {
+    return apiRequest<AgentListResponse>(this.baseUrl, this.apiKey, 'GET', '/agents');
   }
 }

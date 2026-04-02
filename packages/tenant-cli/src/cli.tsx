@@ -1,5 +1,6 @@
 import {Command} from 'commander';
 
+import {registerAgentsCommands} from './commands/agents.js';
 import {registerApprovalsCommands} from './commands/approvals.js';
 import {registerConfigCommands} from './commands/config.js';
 import {registerChatCommands, registerRunCommands} from './commands/run.js';
@@ -18,6 +19,7 @@ export async function runCli(argv: string[] = process.argv): Promise<void> {
   registerRunCommands(program);
   registerChatCommands(program);
   registerJobsCommands(program);
+  registerAgentsCommands(program);
   registerApprovalsCommands(program);
 
   await program.parseAsync(argv);

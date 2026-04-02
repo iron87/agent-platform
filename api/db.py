@@ -145,6 +145,10 @@ class TenantsRepository(Repository):
 
 
 class AgentDefinitionsRepository(Repository):
+    async def list_all(self) -> list[Mapping[str, Any]]:
+        statement = select(agent_definitions_table).order_by(agent_definitions_table.c.created_at.desc())
+        return await self.fetch_all(statement)
+
     async def get_by_id(self, agent_id: UUID) -> Mapping[str, Any] | None:
         statement = select(agent_definitions_table).where(agent_definitions_table.c.id == agent_id)
         return await self.fetch_one(statement)

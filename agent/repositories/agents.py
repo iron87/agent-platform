@@ -39,3 +39,15 @@ class AgentsRepository:
 
         validated_record["model_alias"] = model_alias
         return validated_record
+
+    async def list_all(self) -> list[Mapping[str, Any]]:
+        records = await self._repo.list_all()
+        validated: list[Mapping[str, Any]] = []
+        for record in records:
+            current = dict(record)
+            model_alias = str(current.get("model_alias") or "").strip()
+            if model_alias not in VALID_ALIASES:
+                continue
+            current["model_alias"] = model_alias
+            validated.append(current)
+        return validated

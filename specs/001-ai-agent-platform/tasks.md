@@ -235,6 +235,7 @@
 - [X] T087 [US10] Implement the shared async HTTP API wrapper, auth header injection, and public-contract error mapping in packages/tenant-cli/src/api/client.ts
 - [X] T088 [US10] Implement `2brain run` and `2brain session chat` Ink flows with stable `--json` output in packages/tenant-cli/src/commands/run.tsx and packages/tenant-cli/src/commands/chat.tsx
 - [X] T089 [P] [US10] Implement `2brain jobs submit|status|wait` polling commands in packages/tenant-cli/src/commands/jobs.tsx
+- [X] T089A [US10] Add agent discovery flow with `GET /api/v1/agents` and `2brain agents list` in api/routes/agents.py, packages/tenant-cli/src/api/client.ts, and packages/tenant-cli/src/commands/agents.tsx
 - [ ] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in packages/tenant-cli/src/commands/approvals.tsx
 - [ ] T091 [P] [US10] Implement Ink presenters, TTY detection, and JSON fallback mode in packages/tenant-cli/src/ui/ and packages/tenant-cli/src/output.ts
 - [ ] T092 [US10] Add packaging/build/release wiring for the Ink CLI in packages/tenant-cli/tsconfig.json, packages/tenant-cli/src/index.ts, and npm scripts
