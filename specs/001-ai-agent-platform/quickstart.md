@@ -328,12 +328,11 @@ The CLI mirrors the public API rather than bypassing it. That means every comman
 ### Step 1 — Configure a local profile
 
 ```bash
-export BRAIN_API_BASE_URL="http://localhost:8000/api/v1"
+export BRAIN_BASE_URL="http://localhost:8000/api/v1"
 export BRAIN_API_KEY="sk-2brain-<your-key>"
 
-# planned UX
 2brain config set --profile local-dev \
-  --base-url "$BRAIN_API_BASE_URL" \
+  --base-url "$BRAIN_BASE_URL" \
   --api-key "$BRAIN_API_KEY"
 ```
 
@@ -353,6 +352,8 @@ Expected output shape:
 {
   "job_id": "...",
   "output": "...",
+  "status": "completed",
+  "pending_approval_id": null,
   "trace_id": "lf-...",
   "session_id": null
 }

@@ -30,6 +30,8 @@ def test_cli_sources_cover_config_run_and_jobs_flows() -> None:
     run_cmd = _read(CLI_ROOT / "src" / "commands" / "run.tsx")
     chat_cmd = _read(CLI_ROOT / "src" / "commands" / "chat.tsx")
     jobs_cmd = _read(CLI_ROOT / "src" / "commands" / "jobs.tsx")
+    approvals_cmd = _read(CLI_ROOT / "src" / "commands" / "approvals.tsx")
+    output = _read(CLI_ROOT / "src" / "output.ts")
     client = _read(CLI_ROOT / "src" / "api" / "client.ts")
 
     assert "config" in cli_entry
@@ -42,6 +44,9 @@ def test_cli_sources_cover_config_run_and_jobs_flows() -> None:
     assert "--json" in run_cmd
     assert "session_id" in chat_cmd
     assert "submit" in jobs_cmd and "status" in jobs_cmd and "wait" in jobs_cmd
+    assert "approve" in approvals_cmd and "reject" in approvals_cmd and "decide" in approvals_cmd
+    assert "isTTY()" in output
     assert "X-API-Key" in client
     assert "/run" in client
     assert "/jobs" in client
+    assert "/approvals" in client

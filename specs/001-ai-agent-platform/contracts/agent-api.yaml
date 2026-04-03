@@ -70,7 +70,7 @@ components:
 
     RunResponse:
       type: object
-      required: [job_id, output, trace_id]
+      required: [job_id, output, status]
       properties:
         job_id:
           type: string
@@ -79,12 +79,101 @@ components:
         output:
           type: string
           description: Agent response text after policy processing
+        status:
+          type: string
+          enum: [pending, running, interrupted, completed, failed]
+          description: Execution status for sync response (interrupted when HITL gate is reached)
+        pending_approval_id:
+          type: string
+          format: uuid
+          description: Present when status = interrupted
         trace_id:
           type: string
+          nullable: true
           description: Langfuse trace ID for this execution
         session_id:
           type: string
+          nullable: true
           description: Echo of the session_id used (if any)
+
+    ReplayRequest:
+      type: object
+      required: [trace_id, agent_id, input]
+      properties:
+        trace_id:
+          type: string
+        agent_id:
+          type: string
+          format: uuid
+        input:
+          type: string
+          maxLength: 131072
+        session_id:
+          type: string
+          maxLength: 128
+        metadata:
+          type: object
+          additionalProperties: true
+
+    AgentSummary:
+      type: object
+      required: [id, name, graph_type, model_alias, version, semantic_memory_enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        graph_type:
+          type: string
+          enum: [conversational, tool_agent, batch_agent]
+        model_alias:
+          type: string
+          enum: [default, fast, embedding]
+        version:
+          type: integer
+        semantic_memory_enabled:
+          type: boolean
+
+    AgentListResponse:
+      type: object
+      required: [agents]
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentSummary"
+
+    AgentCreateRequest:
+      type: object
+      required: [name, prompt_file]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        prompt_file:
+          type: string
+          minLength: 1
+          maxLength: 512
+        model_alias:
+          type: string
+          enum: [default, fast, embedding]
+          default: default
+        max_execution_seconds:
+          type: integer
+          minimum: 1
+          default: 60
+        semantic_memory_enabled:
+          type: boolean
+          default: false
+
+    AgentCreateResponse:
+      type: object
+      required: [agent]
+      properties:
+        agent:
+          $ref: "#/components/schemas/AgentSummary"
 
     # ──────────────────────────────────────────────
     # Async batch jobs
@@ -309,6 +398,97 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: LLM provider unavailable after fallback exhausted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /run/replay:
+    post:
+      summary: Replay an execution from a source trace
+      operationId: replayRun
+      tags: [agents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplayRequest"
+      responses:
+        "200":
+          description: Replay completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResponse"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: agent_id not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request body validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /agents:
+    get:
+      summary: List available agent definitions
+      operationId: listAgents
+      tags: [agents]
+      responses:
+        "200":
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentListResponse"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Create a conversational agent definition
+      operationId: createAgent
+      tags: [agents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentCreateRequest"
+      responses:
+        "201":
+          description: Agent created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentCreateResponse"
+        "401":
+          description: Missing or invalid X-API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Agent with name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Request body validation error
           content:
             application/json:
               schema:

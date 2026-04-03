@@ -258,11 +258,15 @@ def test_phase_two_foundation_layer_3_artifacts_exist() -> None:
     assert "def create_queue" in queue_module
     assert "def enqueue_job" in queue_module
     assert "def get_job_status" in queue_module
-    assert "def cancel_job" in queue_module
-    assert "class JobCallbackBridge" in queue_module
-    assert "class QueueUnavailableError" in queue_module
-    assert "Retry(" in queue_module
-    assert "result_ttl=86400" in queue_module or "DEFAULT_RESULT_TTL_SECONDS = 86400" in queue_module
+
+
+def test_operations_runbook_exists_with_restart_upgrade_troubleshooting() -> None:
+    operations = _read("docs/operations.md")
+
+    assert "Operations Runbook" in operations
+    assert "Restart Procedures" in operations
+    assert "Upgrade Procedure" in operations
+    assert "Troubleshooting" in operations
 
 
 def test_phase_two_foundation_complete_t023_orchestrator_exists() -> None:

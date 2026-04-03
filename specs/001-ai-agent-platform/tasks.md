@@ -250,13 +250,13 @@
 
 **Purpose**: Harden quality, docs, and operational readiness across all stories
 
-- [ ] T094 [P] Add graph unit test coverage for conversational/tool/batch paths in tests/graphs/
-- [ ] T095 [P] Add route test coverage for auth/validation/error paths in tests/routes/
-- [ ] T096 [P] Add integration scenarios for bootstrap, sync invoke, async job, policy, HITL, and CLI flows in tests/integration/ and tests/cli/
-- [ ] T097 Run quickstart scenario validation and update steps for accuracy in specs/001-ai-agent-platform/quickstart.md
-- [ ] T098 Validate API contract consistency between implementation and OpenAPI in specs/001-ai-agent-platform/contracts/agent-api.yaml
-- [ ] T099 Validate `.env.example` completeness against runtime config loader in infra/.env.example and api/config.py
-- [ ] T100 Add final operations runbook notes for restart/upgrade/troubleshooting in docs/operations.md
+- [X] T094 [P] Add graph unit test coverage for conversational/tool/batch paths in tests/graphs/
+- [X] T095 [P] Add route test coverage for auth/validation/error paths in tests/routes/
+- [X] T096 [P] Add integration scenarios for bootstrap, sync invoke, async job, policy, HITL, and CLI flows in tests/integration/ and tests/cli/
+- [X] T097 Run quickstart scenario validation and update steps for accuracy in specs/001-ai-agent-platform/quickstart.md
+- [X] T098 Validate API contract consistency between implementation and OpenAPI in specs/001-ai-agent-platform/contracts/agent-api.yaml
+- [X] T099 Validate `.env.example` completeness against runtime config loader in infra/.env.example and api/config.py
+- [X] T100 Add final operations runbook notes for restart/upgrade/troubleshooting in docs/operations.md
 
 ---
 
