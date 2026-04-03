@@ -189,13 +189,13 @@
 
 ### Implementation for User Story 8
 
-- [ ] T070 [P] [US8] Implement policy models and validation structures in agent/models/policy.py
-- [ ] T071 [US8] Implement response redaction and category blocking pipeline in agent/policy.py
-- [ ] T072 [US8] Implement injection detection evaluation hook in agent/policy.py
-- [ ] T073 [US8] Implement policy application step in service response path in agent/service.py
-- [ ] T074 [US8] Implement policy violation structured logging (without raw sensitive values) in agent/policy.py
-- [ ] T075 [US8] Implement hot-reload cache refresh and version tracking updates in agent/policy.py
-- [ ] T076 [US8] Implement no-policy fast path (zero extra policy calls) in agent/service.py
+- [X] T070 [P] [US8] Implement policy models and validation structures in agent/models/policy.py
+- [X] T071 [US8] Implement response redaction and category blocking pipeline in agent/policy.py
+- [X] T072 [US8] Implement injection detection evaluation hook in agent/policy.py
+- [X] T073 [US8] Implement policy application step in service response path in agent/service.py
+- [X] T074 [US8] Implement policy violation structured logging (without raw sensitive values) in agent/policy.py
+- [X] T075 [US8] Implement hot-reload cache refresh and version tracking updates in agent/policy.py
+- [X] T076 [US8] Implement no-policy fast path (zero extra policy calls) in agent/service.py
 
 **Checkpoint**: Policy enforcement is per-tenant, safe, and hot-reloadable
 

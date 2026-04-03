@@ -192,6 +192,32 @@ Expected behavior:
 - replay call returns `replay_trace_id` and `replay_output`
 - in Langfuse UI, you can search for both trace IDs to compare original vs replayed execution
 
+## US8 - Policy Enforcement (Redaction + Blocking)
+
+Files:
+- `examples/us8_policy_example.py`: demonstrates tenant policy loading and enforcement for redaction, category blocking, and injection detection.
+- `examples/us8_policy_redaction_only_example.py`: demonstrates pure redaction rules (email + phone) without blocking.
+- `examples/us8_policy_injection_block_example.py`: demonstrates injection detection with hard block mode.
+- `examples/us8_policy_hot_reload_example.py`: demonstrates hot-reload policy refresh and version bump detection.
+
+### Run the US8 example
+
+```bash
+python examples/us8_policy_example.py
+python examples/us8_policy_redaction_only_example.py
+python examples/us8_policy_injection_block_example.py
+python examples/us8_policy_hot_reload_example.py
+```
+
+Expected behavior:
+- email in input is redacted
+- injection signal is detected in metadata
+- credentials-like output is blocked with `Response blocked by tenant policy.`
+- metadata includes violations/redactions without leaking raw sensitive values
+- redaction-only example masks both email and phone values
+- injection-block example returns `Response blocked by tenant policy.` on prompt-injection pattern
+- hot-reload example prints `version_before` and `version_after` with an increment after file change
+
 ## US4 - Web Search Tool
 
 Files:

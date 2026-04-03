@@ -39,7 +39,7 @@ class RunRequest(APIModel):
 class RunResponse(APIModel):
     job_id: UUID
     output: str
-    trace_id: str
+    trace_id: str | None = None
     session_id: str | None = None
 
 

@@ -228,6 +228,27 @@ class AgentService:
         )
         return await self.execute(replay_request)
 
+    async def _apply_policy_if_configured(
+        self,
+        *,
+        tenant_id: str,
+        text: str,
+        stage: str,
+    ) -> tuple[str, dict[str, Any]]:
+        """Apply tenant policy when configured; otherwise return pass-through."""
+        from agent.policy import apply_policy, get_rails
+
+        policy_handle = get_rails(tenant_id)
+        if policy_handle is None:
+            return text, {"status": "pass_through", "violations": [], "redactions": []}
+
+        return await apply_policy(
+            policy_handle,
+            text,
+            tenant_id=tenant_id,
+            stage=stage,
+        )
+
     async def _execute_sync(self, request: ExecutionRequest) -> ExecutionResult:
         """Execute in synchronous mode (immediate response, single turn).
 
@@ -286,16 +307,15 @@ class AgentService:
         }
 
         # Apply input policy (optional, fail-open)
-        processed_input = request.input
-        try:
-            from agent.policy import get_rails, apply_policy
+        processed_input, input_policy_meta = await self._apply_policy_if_configured(
+            tenant_id=request.tenant_id,
+            text=request.input,
+            stage="input",
+        )
+        state["input"] = processed_input
 
-            rails = get_rails(request.tenant_id)
-            if rails:
-                processed_input, _ = await apply_policy(rails, request.input)
-                state["input"] = processed_input
-        except Exception as e:
-            logger.warning("policy_application_failed_sync", error=str(e))
+        if input_policy_meta.get("status") == "blocked":
+            raise ValueError("Policy violation: input blocked by tenant policy")
 
         # Execute graph
         try:
@@ -317,14 +337,13 @@ class AgentService:
 
         # Apply output policy (optional, fail-open)
         output = result.get("output", "")
-        try:
-            from agent.policy import get_rails, apply_policy
-
-            rails = get_rails(request.tenant_id)
-            if rails:
-                output, _ = await apply_policy(rails, output)
-        except Exception as e:
-            logger.warning("policy_application_failed_output", error=str(e))
+        output, output_policy_meta = await self._apply_policy_if_configured(
+            tenant_id=request.tenant_id,
+            text=output,
+            stage="output",
+        )
+        if output_policy_meta.get("status") == "blocked":
+            raise ValueError("Policy violation: output blocked by tenant policy")
 
         end_time = datetime.now(timezone.utc)
         execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
@@ -482,6 +501,16 @@ class AgentService:
             "_trace_callbacks": None,
         }
 
+        # Apply input policy before session execution
+        processed_input, input_policy_meta = await self._apply_policy_if_configured(
+            tenant_id=request.tenant_id,
+            text=request.input,
+            stage="input",
+        )
+        state["input"] = processed_input
+        if input_policy_meta.get("status") == "blocked":
+            raise ValueError("Policy violation: input blocked by tenant policy")
+
         # Select and execute graph
         graph = self._get_graph(agent_def["graph_type"])
         if graph is None:
@@ -492,7 +521,7 @@ class AgentService:
                     {"role": "system", "content": system_prompt},
                     *completion_messages,
                 ]
-            completion_messages.append({"role": "user", "content": request.input})
+            completion_messages.append({"role": "user", "content": processed_input})
             from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
 
             async with ExecutionTraceContext(
@@ -516,11 +545,19 @@ class AgentService:
                 trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(request.session_id)
             output = completion.choices[0].message.content or ""
 
+            output, output_policy_meta = await self._apply_policy_if_configured(
+                tenant_id=request.tenant_id,
+                text=output,
+                stage="output",
+            )
+            if output_policy_meta.get("status") == "blocked":
+                raise ValueError("Policy violation: output blocked by tenant policy")
+
             now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             await self.session_store.append_turn(
                 tenant_id=request.tenant_id,
                 session_id=request.session_id,
-                turn=SessionTurn(role="user", content=request.input, timestamp=now),
+                turn=SessionTurn(role="user", content=processed_input, timestamp=now),
             )
             await self.session_store.append_turn(
                 tenant_id=request.tenant_id,
@@ -558,12 +595,20 @@ class AgentService:
         # Extract output
         output = result.get("output", "")
 
+        output, output_policy_meta = await self._apply_policy_if_configured(
+            tenant_id=request.tenant_id,
+            text=output,
+            stage="output",
+        )
+        if output_policy_meta.get("status") == "blocked":
+            raise ValueError("Policy violation: output blocked by tenant policy")
+
         # Append turns to session history
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         await self.session_store.append_turn(
             tenant_id=request.tenant_id,
             session_id=request.session_id,
-            turn=SessionTurn(role="user", content=request.input, timestamp=now),
+            turn=SessionTurn(role="user", content=processed_input, timestamp=now),
         )
         await self.session_store.append_turn(
             tenant_id=request.tenant_id,

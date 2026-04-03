@@ -46,7 +46,7 @@ bash infra/bootstrap-light.sh
 | Auth | X-API-Key tenant authentication | ✅ |
 | Execution | Sync + session + async modes | ✅ |
 | Queue | rq-based background execution | ✅ |
-| Policies | Per-tenant policy hooks | ✅ (core) |
+| Policies | Per-tenant policy hooks + redaction/blocking/injection detection | ✅ |
 | HITL | Approval-gated tool execution | ⏳ |
 
 ### Tools
@@ -85,6 +85,22 @@ Operational notes:
 - tune `LITELLM_BUDGET_DEFAULT`, `LITELLM_BUDGET_FAST`, `LITELLM_BUDGET_EMBEDDING`, plus the tenant-wide defaults `LITELLM_TENANT_BUDGET_TOTAL` and `LITELLM_TENANT_BUDGET_DURATION` for virtual-key budgeting
 - after changing alias or fallback wiring, restart the LiteLLM service (`bash infra/bootstrap-light.sh` is enough for local dev)
 - `agent_definitions.model_alias` is validated at runtime and must stay within `default`, `fast`, or `embedding`; conversational, tool, and batch graphs all resolve through these aliases only
+
+## Policy Enforcement (US8)
+
+The policy runtime supports per-tenant enforcement with a fail-open strategy:
+
+- redaction rules via regex (`policy.json` per tenant)
+- blocked category detection (`credentials`, `pii`, `violence`, `hate`)
+- prompt injection detection with optional blocking
+- structured violation logs without raw sensitive values
+- hot-reload by directory hash + policy version tracking
+
+Example:
+- policy walkthrough: [examples/us8_policy_example.py](examples/us8_policy_example.py)
+- redaction-only walkthrough: [examples/us8_policy_redaction_only_example.py](examples/us8_policy_redaction_only_example.py)
+- injection-block walkthrough: [examples/us8_policy_injection_block_example.py](examples/us8_policy_injection_block_example.py)
+- hot-reload walkthrough: [examples/us8_policy_hot_reload_example.py](examples/us8_policy_hot_reload_example.py)
 
 ## Architecture & Agent Graphs
 
@@ -383,6 +399,11 @@ Profiles are stored at `~/.config/2brain/config.json`.
 - Sync invocation: [examples/us2_sync_example.py](examples/us2_sync_example.py)
 - Session flow: [examples/us3_session_example.py](examples/us3_session_example.py)
 - Async job flow: [examples/us5_async_job_example.py](examples/us5_async_job_example.py)
+- Trace replay flow: [examples/us7_trace_replay_example.py](examples/us7_trace_replay_example.py)
+- Policy enforcement flow: [examples/us8_policy_example.py](examples/us8_policy_example.py)
+- Policy redaction-only flow: [examples/us8_policy_redaction_only_example.py](examples/us8_policy_redaction_only_example.py)
+- Policy injection-block flow: [examples/us8_policy_injection_block_example.py](examples/us8_policy_injection_block_example.py)
+- Policy hot-reload flow: [examples/us8_policy_hot_reload_example.py](examples/us8_policy_hot_reload_example.py)
 - Tool flows:
   - [examples/us4_web_search_example.py](examples/us4_web_search_example.py)
   - [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py)
@@ -420,8 +441,8 @@ On success, `GET /api/v1/jobs/{job_id}` returns the final `output` and `trace_id
 | Phase 6 | US4 Tool-Using Agent (T044-T050) | ✅ |
 | Phase 7 | US5 Async lifecycle completion (T051-T057) | ✅ |
 | Phase 8 | US6 Provider routing/fallback hardening | ✅ |
-| Phase 9 | US7 Trace review/replay | ⏳ |
-| Phase 10 | US8 Policy enforcement hardening | ⏳ |
+| Phase 9 | US7 Trace review/replay | ✅ |
+| Phase 10 | US8 Policy enforcement hardening | ✅ |
 | Phase 11 | US9 HITL approvals | ⏳ |
 | Phase 12 | US10 Tenant CLI | ⏳ |
 | Phase 13 | Polish and cross-cutting tests/docs | ⏳ |
