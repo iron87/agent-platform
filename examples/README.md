@@ -218,6 +218,33 @@ Expected behavior:
 - injection-block example returns `Response blocked by tenant policy.` on prompt-injection pattern
 - hot-reload example prints `version_before` and `version_after` with an increment after file change
 
+## US9 - Approval Review and Decision
+
+Files:
+- `examples/us9_approval_flow_example.py`: fetches `GET /api/v1/approvals/{id}` and submits `POST /api/v1/approvals/{id}/decide`.
+
+### Run the US9 example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+export AGENT_APPROVAL_ID="<pending-approval-uuid>"
+export AGENT_REVIEWER_ID="ops@example.com"
+export AGENT_APPROVAL_DECISION="approve"   # or reject
+python examples/us9_approval_flow_example.py
+```
+
+Optional reason override:
+
+```bash
+export AGENT_APPROVAL_REASON="Rejected: missing legal sign-off"
+python examples/us9_approval_flow_example.py
+```
+
+Expected behavior:
+- first request prints approval details (`status`, `tool_name`, `proposed_args`)
+- if pending, decision request updates status to `approved` or `rejected`
+- `GET /jobs/{job_id}` reflects the interrupted/failed-running transition after decision
+
 ## US4 - Web Search Tool
 
 Files:

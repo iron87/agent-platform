@@ -17,11 +17,13 @@ Provides three execution modes:
 
 from pathlib import Path
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 import structlog
+
+from agent.approvals import dispatch_approval_webhook
 
 logger = structlog.get_logger(__name__)
 
@@ -89,6 +91,8 @@ class ExecutionResult:
 
     output: str
     trace_id: str | None
+    status: str = "completed"
+    pending_approval_id: str | None = None
     session_id: str | None = None
     job_id: str | None = None
     execution_time_ms: int | None = None
@@ -126,6 +130,7 @@ class AgentService:
         self,
         agent_repo: Any,
         jobs_repo: Any,
+        approvals_repo: Any,
         session_store: Any,
         memory_store: Any,
         llm_client: Any,
@@ -147,6 +152,7 @@ class AgentService:
         """
         self.agent_repo = agent_repo
         self.jobs_repo = jobs_repo
+        self.approvals_repo = approvals_repo
         self.session_store = session_store
         self.memory_store = memory_store
         self.llm_client = llm_client
@@ -319,7 +325,12 @@ class AgentService:
 
         # Execute graph
         try:
-            from agent.observability import ExecutionTraceContext, extract_trace_id, fallback_trace_id
+            from agent.observability import (
+                ExecutionTraceContext,
+                emit_approval_event,
+                extract_trace_id,
+                fallback_trace_id,
+            )
 
             async with ExecutionTraceContext(
                 self.settings,
@@ -330,6 +341,84 @@ class AgentService:
                 state["_trace_callbacks"] = trace_ctx.config.get("callbacks", [])
                 result = await graph.ainvoke(state, config=trace_ctx.config)
                 trace_id = extract_trace_id(trace_ctx.handler) or fallback_trace_id(run_id)
+
+                if str(result.get("status") or "").lower() == "interrupted":
+                    if self.approvals_repo is None:
+                        raise ValueError("Approvals repository is not configured for HITL workflows")
+
+                    pending_tool = str(result.get("pending_tool") or "")
+                    proposed_args = dict(result.get("tool_args") or {})
+                    timeout_at = datetime.now(timezone.utc) + timedelta(seconds=self.settings.HITL_TIMEOUT_SECONDS)
+
+                    job_id = str((request.metadata or {}).get("job_id") or run_id)
+                    if self.jobs_repo is not None and not (request.metadata or {}).get("job_id"):
+                        await self.jobs_repo.create(
+                            {
+                                "id": job_id,
+                                "tenant_id": request.tenant_id,
+                                "agent_id": request.agent_id,
+                                "session_id": request.session_id,
+                                "input_payload": {
+                                    "input": request.input,
+                                    "session_id": request.session_id,
+                                    "metadata": request.metadata or {},
+                                },
+                                "status": "running",
+                                "result": None,
+                                "error": None,
+                                "trace_id": trace_id,
+                                "rq_job_id": None,
+                                "attempts": 0,
+                                "mode": request.mode.value,
+                                "created_at": datetime.now(timezone.utc),
+                                "started_at": datetime.now(timezone.utc),
+                                "completed_at": None,
+                            }
+                        )
+
+                    approval = await self.approvals_repo.create(
+                        {
+                            "id": str(uuid4()),
+                            "job_id": job_id,
+                            "tenant_id": request.tenant_id,
+                            "tool_name": pending_tool,
+                            "proposed_args": proposed_args,
+                            "context_summary": "Approval requested for high-risk tool execution",
+                            "status": "pending",
+                            "timeout_at": timeout_at,
+                            "decision_at": None,
+                            "reviewer_id": None,
+                        }
+                    )
+
+                    approval_id = str(approval["id"])
+                    if self.jobs_repo is not None:
+                        await self.jobs_repo.mark_interrupted(job_id, pending_approval_id=approval_id, trace_id=trace_id)
+
+                    await dispatch_approval_webhook(
+                        endpoint=(request.metadata or {}).get("approval_endpoint"),
+                        approval=approval,
+                    )
+
+                    emit_approval_event(
+                        trace_ctx.config.get("callbacks", []),
+                        event_name="approval_requested",
+                        approval_id=approval_id,
+                        job_id=job_id,
+                        tool_name=pending_tool,
+                        status="pending",
+                    )
+
+                    end_time = datetime.now(timezone.utc)
+                    execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
+                    return ExecutionResult(
+                        output=str(result.get("output") or "Execution paused awaiting human approval."),
+                        trace_id=trace_id,
+                        job_id=job_id,
+                        status="interrupted",
+                        pending_approval_id=approval_id,
+                        execution_time_ms=execution_time_ms,
+                    )
 
         except Exception as e:
             logger.error("graph_execution_failed_sync", error=str(e))
@@ -359,6 +448,7 @@ class AgentService:
             output=output,
             trace_id=trace_id,
             job_id=run_id,
+            status=str(result.get("status") or "completed"),
             execution_time_ms=execution_time_ms,
         )
 

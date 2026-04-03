@@ -140,6 +140,7 @@ async def _tool_agent_step(state: AgentState) -> dict[str, Any]:
     agent_definition = dict(state.get("_agent_definition") or {})
     tool_registry = dict(state.get("_tool_registry") or build_tool_registry())
     allowed_tools = get_allowed_tools(agent_definition, tool_registry=tool_registry)
+    hitl_tools = {str(name) for name in (agent_definition.get("hitl_tools") or [])}
     tools_payload = build_openai_tools_payload(allowed_tools)
 
     messages: list[dict[str, Any]] = []
@@ -204,6 +205,18 @@ async def _tool_agent_step(state: AgentState) -> dict[str, Any]:
                     }
                 )
                 continue
+
+            if tool_name in hitl_tools:
+                tool_events.append({"tool": tool_name, "success": False, "status": "pending_approval"})
+                return {
+                    "messages": messages,
+                    "output": "Execution paused awaiting human approval.",
+                    "status": "interrupted",
+                    "error": None,
+                    "pending_tool": tool_name,
+                    "tool_args": args,
+                    "tool_events": tool_events,
+                }
 
             tool = allowed_tools[tool_name]
             try:

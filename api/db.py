@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Integer, MetaData, String, Table, Text, func, insert, select, update
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, Integer, MetaData, String, Table, Text, and_, func, insert, select, update
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
@@ -196,6 +198,79 @@ class ApprovalRequestsRepository(Repository):
     async def get_by_id(self, approval_request_id: UUID) -> Mapping[str, Any] | None:
         statement = select(approval_requests_table).where(approval_requests_table.c.id == approval_request_id)
         return await self.fetch_one(statement)
+
+    async def get_for_tenant(self, approval_request_id: UUID | str, tenant_id: UUID | str) -> Mapping[str, Any] | None:
+        statement = select(approval_requests_table).where(
+            and_(
+                approval_requests_table.c.id == UUID(str(approval_request_id)),
+                approval_requests_table.c.tenant_id == UUID(str(tenant_id)),
+            )
+        )
+        return await self.fetch_one(statement)
+
+    async def create(self, values: Mapping[str, Any]) -> Mapping[str, Any]:
+        normalized_values = dict(values)
+        for key in ("id", "job_id", "tenant_id"):
+            if key in normalized_values:
+                normalized_values[key] = UUID(str(normalized_values[key]))
+
+        statement = insert(approval_requests_table).values(**normalized_values).returning(approval_requests_table)
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        row = result.mappings().first()
+        return dict(row) if row is not None else {}
+
+    async def decide_pending(
+        self,
+        approval_request_id: UUID | str,
+        *,
+        approved: bool,
+        reviewer_id: str,
+    ) -> Mapping[str, Any] | None:
+        status_value = "approved" if approved else "rejected"
+        now = datetime.now(timezone.utc)
+        statement = (
+            update(approval_requests_table)
+            .where(
+                and_(
+                    approval_requests_table.c.id == UUID(str(approval_request_id)),
+                    approval_requests_table.c.status == "pending",
+                )
+            )
+            .values(status=status_value, reviewer_id=reviewer_id, decision_at=now)
+            .returning(approval_requests_table)
+        )
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        row = result.mappings().first()
+        return dict(row) if row is not None else None
+
+    async def mark_timed_out(self, approval_request_id: UUID | str) -> Mapping[str, Any] | None:
+        statement = (
+            update(approval_requests_table)
+            .where(
+                and_(
+                    approval_requests_table.c.id == UUID(str(approval_request_id)),
+                    approval_requests_table.c.status == "pending",
+                )
+            )
+            .values(status="timed_out", decision_at=datetime.now(timezone.utc))
+            .returning(approval_requests_table)
+        )
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        row = result.mappings().first()
+        return dict(row) if row is not None else None
+
+    async def list_timed_out_pending(self, *, now: datetime | None = None) -> list[Mapping[str, Any]]:
+        threshold = now or datetime.now(timezone.utc)
+        statement = select(approval_requests_table).where(
+            and_(
+                approval_requests_table.c.status == "pending",
+                approval_requests_table.c.timeout_at <= threshold,
+            )
+        )
+        return await self.fetch_all(statement)
 
 
 class TenantPoliciesRepository(Repository):

@@ -47,7 +47,7 @@ bash infra/bootstrap-light.sh
 | Execution | Sync + session + async modes | ✅ |
 | Queue | rq-based background execution | ✅ |
 | Policies | Per-tenant policy hooks + redaction/blocking/injection detection | ✅ |
-| HITL | Approval-gated tool execution | ⏳ |
+| HITL | Approval-gated tool execution + approval APIs (`GET/POST /approvals`) | ✅ |
 
 ### Tools
 

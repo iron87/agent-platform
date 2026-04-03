@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import LiteLLMClient
-from agent.repositories import AgentNotFoundError, AgentsRepository
+from agent.repositories import AgentNotFoundError, AgentsRepository, ApprovalsRepository, JobsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
 from agent.session_store import RedisSessionStore
 from api.config import Settings
@@ -106,7 +106,8 @@ def _build_agent_service(session: AsyncSession, settings: Settings) -> AgentServ
 
 	return AgentService(
 		agent_repo=AgentsRepository(session),
-		jobs_repo=None,
+		jobs_repo=JobsRepository(session),
+		approvals_repo=ApprovalsRepository(session),
 		session_store=session_store,
 		memory_store=None,
 		llm_client=LiteLLMClient(
@@ -146,6 +147,7 @@ async def run_agent(
 		metadata={
 			**payload.metadata,
 			"tenant_id": str(tenant.tenant_id),
+			"approval_endpoint": tenant.approval_endpoint,
 		},
 	)
 
@@ -178,6 +180,8 @@ async def run_agent(
 	return RunResponse(
 		job_id=UUID(result.job_id) if result.job_id else uuid4(),
 		output=result.output,
+		status=result.status,
+		pending_approval_id=UUID(result.pending_approval_id) if result.pending_approval_id else None,
 		trace_id=result.trace_id,
 		session_id=result.session_id,
 	)
@@ -245,6 +249,8 @@ async def replay_trace(
 	return RunResponse(
 		job_id=UUID(result.job_id) if result.job_id else uuid4(),
 		output=result.output,
+		status=result.status,
+		pending_approval_id=UUID(result.pending_approval_id) if result.pending_approval_id else None,
 		trace_id=result.trace_id,
 		session_id=result.session_id,
 	)

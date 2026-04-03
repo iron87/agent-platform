@@ -234,6 +234,46 @@ def emit_tool_call_span(
     )
 
 
+def emit_approval_event(
+    callbacks: list[Any] | None,
+    *,
+    event_name: str,
+    approval_id: str,
+    job_id: str,
+    tool_name: str,
+    status: str,
+    reviewer_id: str | None = None,
+    reason: str | None = None,
+) -> None:
+    """Emit approval lifecycle events to callbacks and structured logs."""
+    payload = {
+        "approval_id": approval_id,
+        "job_id": job_id,
+        "tool_name": tool_name,
+        "status": status,
+        "reviewer_id": reviewer_id,
+        "reason": reason,
+    }
+
+    for callback in callbacks or []:
+        on_custom_event = getattr(callback, "on_custom_event", None)
+        if callable(on_custom_event):
+            try:
+                on_custom_event(name=event_name, data=payload)
+            except Exception:
+                logger.debug("approval_callback_failed", callback_type=type(callback).__name__)
+
+    logger.info(
+        "approval_event",
+        event_name=event_name,
+        approval_id=approval_id,
+        job_id=job_id,
+        tool_name=tool_name,
+        status=status,
+        reviewer_id=reviewer_id,
+    )
+
+
 class ExecutionTraceContext:
     """Context manager for traced execution with automatic resource cleanup.
 
@@ -328,6 +368,7 @@ __all__ = [
     "inject_trace_metadata",
     "build_execution_callbacks",
     "emit_tool_call_span",
+    "emit_approval_event",
     "extract_trace_id",
     "ExecutionTraceContext",
 ]

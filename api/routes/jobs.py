@@ -8,7 +8,7 @@ import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import LiteLLMClient
-from agent.repositories import AgentNotFoundError, AgentsRepository, JobsRepository
+from agent.repositories import AgentNotFoundError, AgentsRepository, ApprovalsRepository, JobsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
 from agent.session_store import RedisSessionStore
 from api.config import Settings
@@ -36,6 +36,7 @@ def _build_agent_service(session: AsyncSession, settings: Settings) -> AgentServ
     return AgentService(
         agent_repo=AgentsRepository(session),
         jobs_repo=JobsRepository(session),
+        approvals_repo=ApprovalsRepository(session),
         session_store=session_store,
         memory_store=None,
         llm_client=LiteLLMClient(
@@ -92,6 +93,7 @@ async def submit_job(
         metadata={
             **payload.metadata,
             "tenant_id": str(tenant.tenant_id),
+            "approval_endpoint": tenant.approval_endpoint,
         },
     )
 

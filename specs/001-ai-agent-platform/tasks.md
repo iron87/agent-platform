@@ -209,13 +209,13 @@
 
 ### Implementation for User Story 9
 
-- [ ] T077 [P] [US9] Implement approval decision/request schemas in api/models/approvals.py
-- [ ] T078 [US9] Implement approval repository operations and timeout queries in agent/repositories/approvals.py
-- [ ] T079 [US9] Implement LangGraph interrupt/resume integration for gated tools in agent/graphs/tool_agent.py
-- [ ] T080 [US9] Implement approval endpoints `GET /approvals/{id}` and `POST /approvals/{id}/decide` in api/routes/approvals.py
-- [ ] T081 [US9] Implement approval timeout sweep and default reject handling in worker/approvals_timeout.py
-- [ ] T082 [US9] Implement callback/webhook dispatch for approval requests in agent/approvals.py
-- [ ] T083 [US9] Record approval lifecycle spans/events in traces in agent/observability.py
+- [X] T077 [P] [US9] Implement approval decision/request schemas in api/models/approvals.py
+- [X] T078 [US9] Implement approval repository operations and timeout queries in agent/repositories/approvals.py
+- [X] T079 [US9] Implement LangGraph interrupt/resume integration for gated tools in agent/graphs/tool_agent.py
+- [X] T080 [US9] Implement approval endpoints `GET /approvals/{id}` and `POST /approvals/{id}/decide` in api/routes/approvals.py
+- [X] T081 [US9] Implement approval timeout sweep and default reject handling in worker/approvals_timeout.py
+- [X] T082 [US9] Implement callback/webhook dispatch for approval requests in agent/approvals.py
+- [X] T083 [US9] Record approval lifecycle spans/events in traces in agent/observability.py
 
 **Checkpoint**: HITL safety gate is end-to-end functional
 

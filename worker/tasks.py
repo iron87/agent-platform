@@ -8,7 +8,7 @@ import redis.asyncio as redis
 import structlog
 
 from agent.llm import LiteLLMClient
-from agent.repositories import AgentsRepository, JobsRepository
+from agent.repositories import AgentsRepository, ApprovalsRepository, JobsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
 from agent.session_store import RedisSessionStore
 from api.config import Settings, get_settings
@@ -51,6 +51,7 @@ async def run_agent_job_async(
         service = AgentService(
             agent_repo=AgentsRepository(session),
             jobs_repo=jobs_repository,
+            approvals_repo=ApprovalsRepository(session),
             session_store=session_store,
             memory_store=None,
             llm_client=LiteLLMClient(
@@ -107,9 +108,34 @@ async def _execute_job(
                 input=str(job_payload["input"]),
                 mode=execution_mode,
                 session_id=str(session_id) if session_id else None,
-                metadata=dict(job_payload.get("metadata") or {}),
+                metadata={
+                    **dict(job_payload.get("metadata") or {}),
+                    "job_id": job_id,
+                },
             )
         )
+
+        if str(getattr(result, "status", "completed")) == "interrupted":
+            pending_approval_id = getattr(result, "pending_approval_id", None)
+            if pending_approval_id:
+                await jobs_repo.mark_interrupted(
+                    job_id,
+                    pending_approval_id=pending_approval_id,
+                    trace_id=result.trace_id,
+                )
+            logger.info(
+                "agent_job_interrupted",
+                job_id=job_id,
+                tenant_id=tenant_id,
+                agent_id=agent_id,
+                pending_approval_id=pending_approval_id,
+            )
+            return {
+                "job_id": job_id,
+                "status": "interrupted",
+                "pending_approval_id": pending_approval_id,
+                "trace_id": result.trace_id,
+            }
 
         completed_at = datetime.now(timezone.utc)
         await jobs_repo.mark_completed(

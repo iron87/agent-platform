@@ -100,6 +100,7 @@ async def test_service_fast_path_without_policy(monkeypatch: pytest.MonkeyPatch)
     service = AgentService(
         agent_repo=None,
         jobs_repo=None,
+        approvals_repo=None,
         session_store=None,
         memory_store=None,
         llm_client=None,
