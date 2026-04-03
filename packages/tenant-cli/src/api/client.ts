@@ -69,6 +69,18 @@ export interface AgentListResponse {
   agents: AgentSummary[];
 }
 
+export interface AgentCreateRequest {
+  name: string;
+  prompt_file: string;
+  model_alias?: 'default' | 'fast' | 'embedding';
+  max_execution_seconds?: number;
+  semantic_memory_enabled?: boolean;
+}
+
+export interface AgentCreateResponse {
+  agent: AgentSummary;
+}
+
 const TERMINAL_STATES: ReadonlySet<JobState> = new Set([
   'completed',
   'failed',
@@ -179,5 +191,9 @@ export class ApiClient {
 
   async listAgents(): Promise<AgentListResponse> {
     return apiRequest<AgentListResponse>(this.baseUrl, this.apiKey, 'GET', '/agents');
+  }
+
+  async createAgent(req: AgentCreateRequest): Promise<AgentCreateResponse> {
+    return apiRequest<AgentCreateResponse>(this.baseUrl, this.apiKey, 'POST', '/agents', req);
   }
 }

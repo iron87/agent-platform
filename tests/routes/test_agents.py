@@ -4,10 +4,12 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 
 from agent.service import ExecutionMode, ExecutionResult
 from agent.repositories.agents import AgentsRepository
 from api.deps import TenantContext
+from api.models.agents import AgentCreateRequest
 from api.models.run import ReplayRequest, RunRequest
 import api.routes.agents as agents_module
 
@@ -117,3 +119,57 @@ async def test_list_agents_returns_defined_agents(monkeypatch) -> None:
     assert len(response.agents) == 1
     assert response.agents[0].name == "support-triage"
     assert response.agents[0].graph_type == "conversational"
+
+
+@pytest.mark.asyncio
+async def test_create_agent_returns_created_record(monkeypatch) -> None:
+    tenant = TenantContext(tenant_id=uuid4(), tenant_name="acme", approval_endpoint=None)
+    created_id = uuid4()
+
+    async def fake_create_conversational(self, **kwargs):
+        assert kwargs["name"] == "support-chat-2"
+        return {
+            "id": created_id,
+            "name": "support-chat-2",
+            "graph_type": "conversational",
+            "model_alias": "default",
+            "version": 1,
+            "semantic_memory_enabled": False,
+        }
+
+    monkeypatch.setattr(AgentsRepository, "create_conversational", fake_create_conversational)
+
+    response = await agents_module.create_agent(
+        payload=AgentCreateRequest(
+            name="support-chat-2",
+            prompt_file="examples/prompts/us2_support_prompt.txt",
+        ),
+        tenant=tenant,
+        session=object(),
+    )
+
+    assert response.agent.id == created_id
+    assert response.agent.name == "support-chat-2"
+    assert response.agent.graph_type == "conversational"
+
+
+@pytest.mark.asyncio
+async def test_create_agent_maps_validation_error(monkeypatch) -> None:
+    tenant = TenantContext(tenant_id=uuid4(), tenant_name="acme", approval_endpoint=None)
+
+    async def fake_create_conversational(self, **kwargs):
+        raise ValueError("invalid model alias")
+
+    monkeypatch.setattr(AgentsRepository, "create_conversational", fake_create_conversational)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await agents_module.create_agent(
+            payload=AgentCreateRequest(
+                name="bad-agent",
+                prompt_file="examples/prompts/us2_support_prompt.txt",
+            ),
+            tenant=tenant,
+            session=object(),
+        )
+
+    assert exc_info.value.status_code == 422

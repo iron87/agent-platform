@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 import redis.asyncio as redis
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import LiteLLMClient
@@ -14,7 +15,7 @@ from agent.session_store import RedisSessionStore
 from api.config import Settings
 from api.db import get_db_session
 from api.deps import TenantContext, get_current_tenant
-from api.models.agents import AgentListResponse, AgentSummary
+from api.models.agents import AgentCreateRequest, AgentCreateResponse, AgentListResponse, AgentSummary
 from api.logging import bind_correlation_context, clear_correlation_context
 from api.models.run import ReplayRequest, RunRequest, RunResponse
 
@@ -44,6 +45,48 @@ async def list_agents(
 			for record in records
 		]
 		return AgentListResponse(agents=items)
+	finally:
+		clear_correlation_context()
+
+
+@router.post("/agents", response_model=AgentCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_agent(
+	payload: AgentCreateRequest,
+	tenant: Annotated[TenantContext, Depends(get_current_tenant)],
+	session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> AgentCreateResponse:
+	clear_correlation_context()
+	bind_correlation_context(tenant_id=tenant.tenant_id, agent_name=payload.name)
+
+	repo = AgentsRepository(session)
+	try:
+		record = await repo.create_conversational(
+			name=payload.name,
+			prompt_file=payload.prompt_file,
+			model_alias=payload.model_alias,
+			max_execution_seconds=payload.max_execution_seconds,
+			semantic_memory_enabled=payload.semantic_memory_enabled,
+		)
+		return AgentCreateResponse(
+			agent=AgentSummary(
+				id=UUID(str(record["id"])),
+				name=str(record["name"]),
+				graph_type=str(record["graph_type"]),
+				model_alias=str(record["model_alias"]),
+				version=int(record.get("version") or 1),
+				semantic_memory_enabled=bool(record.get("semantic_memory_enabled")),
+			)
+		)
+	except IntegrityError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_409_CONFLICT,
+			detail=f"Agent with name '{payload.name}' already exists.",
+		) from exc
+	except ValueError as exc:
+		raise HTTPException(
+			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			detail=str(exc),
+		) from exc
 	finally:
 		clear_correlation_context()
 

@@ -1,5 +1,5 @@
 from api.models.approvals import ApprovalDecision, ApprovalRequest
-from api.models.agents import AgentListResponse, AgentSummary
+from api.models.agents import AgentCreateRequest, AgentCreateResponse, AgentListResponse, AgentSummary
 from api.models.errors import ErrorResponse
 from api.models.jobs import JobStatus, JobSubmitRequest, JobSubmitResponse
 from api.models.run import RunRequest, RunResponse
@@ -7,6 +7,8 @@ from api.models.run import RunRequest, RunResponse
 __all__ = [
     "ApprovalDecision",
     "ApprovalRequest",
+    "AgentCreateRequest",
+    "AgentCreateResponse",
     "AgentListResponse",
     "AgentSummary",
     "ErrorResponse",

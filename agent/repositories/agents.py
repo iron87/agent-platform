@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -51,3 +51,34 @@ class AgentsRepository:
             current["model_alias"] = model_alias
             validated.append(current)
         return validated
+
+    async def create_conversational(
+        self,
+        *,
+        name: str,
+        prompt_file: str,
+        model_alias: str = "default",
+        max_execution_seconds: int = 60,
+        semantic_memory_enabled: bool = False,
+    ) -> Mapping[str, Any]:
+        normalized_alias = str(model_alias).strip()
+        if normalized_alias not in VALID_ALIASES:
+            raise InvalidAgentDefinitionError(
+                f"Invalid model_alias='{normalized_alias}'. Expected one of {sorted(VALID_ALIASES)}."
+            )
+
+        record = await self._repo.create(
+            {
+                "id": uuid4(),
+                "name": name,
+                "model_alias": normalized_alias,
+                "prompt_file": prompt_file,
+                "graph_type": "conversational",
+                "tools": [],
+                "hitl_tools": [],
+                "max_execution_seconds": max_execution_seconds,
+                "semantic_memory_enabled": semantic_memory_enabled,
+                "version": 1,
+            }
+        )
+        return dict(record)

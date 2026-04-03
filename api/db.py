@@ -149,6 +149,17 @@ class AgentDefinitionsRepository(Repository):
         statement = select(agent_definitions_table).order_by(agent_definitions_table.c.created_at.desc())
         return await self.fetch_all(statement)
 
+    async def create(self, values: Mapping[str, Any]) -> Mapping[str, Any]:
+        normalized_values = dict(values)
+        if "id" in normalized_values:
+            normalized_values["id"] = UUID(str(normalized_values["id"]))
+
+        statement = insert(agent_definitions_table).values(**normalized_values).returning(agent_definitions_table)
+        result = await self.session.execute(statement)
+        await self.session.commit()
+        row = result.mappings().first()
+        return dict(row) if row is not None else {}
+
     async def get_by_id(self, agent_id: UUID) -> Mapping[str, Any] | None:
         statement = select(agent_definitions_table).where(agent_definitions_table.c.id == agent_id)
         return await self.fetch_one(statement)
