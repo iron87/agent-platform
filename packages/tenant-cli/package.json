@@ -1,15 +1,21 @@
 {
   "name": "@2brain/tenant-cli",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "bin": {
     "2brain": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "clean": "rm -rf dist",
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx src/index.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepack": "npm run clean && npm run build"
   },
   "dependencies": {
     "commander": "^12.1.0",

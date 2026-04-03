@@ -245,6 +245,49 @@ Expected behavior:
 - if pending, decision request updates status to `approved` or `rejected`
 - `GET /jobs/{job_id}` reflects the interrupted/failed-running transition after decision
 
+## US10 - Tenant CLI End-to-End Usage
+
+Files:
+- `examples/us10_cli_end_to_end.sh`: full CLI flow for config, run, session continuity, async jobs, and approval follow-up guidance.
+- `examples/us10_cli_run_example.sh`: minimal sync invocation via `2brain run`.
+- `examples/us10_cli_jobs_example.sh`: async `submit/status/wait` lifecycle via CLI.
+- `examples/us10_cli_approvals_example.sh`: approval `get/approve/reject` via CLI.
+
+### Run the US10 CLI example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+export AGENT_ID="00000000-0000-0000-0000-000000000001"
+bash examples/us10_cli_end_to_end.sh
+
+# Focused scripts
+bash examples/us10_cli_run_example.sh
+bash examples/us10_cli_jobs_example.sh
+export AGENT_APPROVAL_ID="<pending-approval-id>"
+bash examples/us10_cli_approvals_example.sh
+```
+
+### CLI equivalents for API examples
+
+```bash
+# US2 sync invocation
+2brain run --profile local-dev --agent-id <agent-id> --input "Hello"
+
+# US3 session continuity
+2brain run --profile local-dev --agent-id <agent-id> --session-id demo-1 --input "Remember ticket ABC-42"
+2brain run --profile local-dev --agent-id <agent-id> --session-id demo-1 --input "What ticket did I mention?"
+
+# US5 async job lifecycle
+2brain jobs submit --profile local-dev --agent-id <agent-id> --input "Generate weekly report"
+2brain jobs status --profile local-dev --job-id <job-id>
+2brain jobs wait --profile local-dev --job-id <job-id> --timeout 180
+
+# US9 approval actions
+2brain approvals get --profile local-dev --approval-id <approval-id>
+2brain approvals approve --profile local-dev --approval-id <approval-id> --reviewer-id ops@example.com
+2brain approvals reject --profile local-dev --approval-id <approval-id> --reviewer-id ops@example.com --reason "Out of policy"
+```
+
 ## US4 - Web Search Tool
 
 Files:

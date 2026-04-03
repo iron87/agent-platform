@@ -2,6 +2,8 @@
 
 import {runCli} from './cli.js';
 
+export {runCli};
+
 runCli(process.argv).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`${message}\n`);

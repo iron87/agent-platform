@@ -18,6 +18,7 @@ This contract defines the planned tenant-facing **React Ink / TypeScript** CLI s
 | `2brain approvals get` | Inspect pending approval details | `GET /approvals/{approval_id}` |
 | `2brain approvals approve` | Approve a gated action | `POST /approvals/{approval_id}/decide` |
 | `2brain approvals reject` | Reject a gated action | `POST /approvals/{approval_id}/decide` |
+| `2brain approvals decide` | Backward-compatible alias (prefer approve/reject) | `POST /approvals/{approval_id}/decide` |
 | `2brain config set` | Store local CLI profile | local only |
 | `2brain ui` | Launch the full-screen Ink workspace/dashboard | same endpoints as above |
 
@@ -104,6 +105,6 @@ This contract defines the planned tenant-facing **React Ink / TypeScript** CLI s
 
 ---
 
-## Known Backend Dependency
+## Implementation Note
 
-The approval endpoints are already defined in `agent-api.yaml`, but `api/routes/approvals.py` is currently only a stub. Full CLI coverage for `approvals` depends on completing those routes to match the published contract.
+Approval endpoints are implemented and wired in the backend. The CLI is now a first-class consumer of the same authenticated public API contract (`/run`, `/jobs`, `/approvals`, `/agents`).

@@ -8,6 +8,8 @@ export interface RunRequest {
 export interface RunResponse {
   job_id: string;
   output: string;
+  status: 'completed' | 'interrupted' | 'failed' | 'running' | 'pending';
+  pending_approval_id: string | null;
   trace_id: string | null;
   session_id: string | null;
 }
@@ -179,8 +181,8 @@ export class ApiClient {
     );
   }
 
-  async decideApproval(approvalId: string, decision: ApprovalDecision): Promise<unknown> {
-    return apiRequest<unknown>(
+  async decideApproval(approvalId: string, decision: ApprovalDecision): Promise<ApprovalRequest> {
+    return apiRequest<ApprovalRequest>(
       this.baseUrl,
       this.apiKey,
       'POST',

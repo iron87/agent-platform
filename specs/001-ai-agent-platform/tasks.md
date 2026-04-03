@@ -237,10 +237,10 @@
 - [X] T089 [P] [US10] Implement `2brain jobs submit|status|wait` polling commands in packages/tenant-cli/src/commands/jobs.tsx
 - [X] T089A [US10] Add agent discovery flow with `GET /api/v1/agents` and `2brain agents list` in api/routes/agents.py, packages/tenant-cli/src/api/client.ts, and packages/tenant-cli/src/commands/agents.tsx
 - [X] T089B [US10] Add conversational agent creation flow with `POST /api/v1/agents` and `2brain agents create` in api/routes/agents.py, agent/repositories/agents.py, and packages/tenant-cli/src/commands/agents.tsx
-- [ ] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in packages/tenant-cli/src/commands/approvals.tsx
-- [ ] T091 [P] [US10] Implement Ink presenters, TTY detection, and JSON fallback mode in packages/tenant-cli/src/ui/ and packages/tenant-cli/src/output.ts
-- [ ] T092 [US10] Add packaging/build/release wiring for the Ink CLI in packages/tenant-cli/tsconfig.json, packages/tenant-cli/src/index.ts, and npm scripts
-- [ ] T093 [US10] Document Ink CLI installation, profile setup, and end-to-end usage in README.md, specs/001-ai-agent-platform/quickstart.md, and specs/001-ai-agent-platform/contracts/cli-commands.md
+- [X] T090 [P] [US10] Implement `2brain approvals get|approve|reject` decision commands in packages/tenant-cli/src/commands/approvals.tsx
+- [X] T091 [P] [US10] Implement Ink presenters, TTY detection, and JSON fallback mode in packages/tenant-cli/src/ui/ and packages/tenant-cli/src/output.ts
+- [X] T092 [US10] Add packaging/build/release wiring for the Ink CLI in packages/tenant-cli/tsconfig.json, packages/tenant-cli/src/index.ts, and npm scripts
+- [X] T093 [US10] Document Ink CLI installation, profile setup, and end-to-end usage in README.md, specs/001-ai-agent-platform/quickstart.md, and specs/001-ai-agent-platform/contracts/cli-commands.md
 
 **Checkpoint**: Tenants can use the CLI as a first-class consumer of the same authenticated public API contracts.
 

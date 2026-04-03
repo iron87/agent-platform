@@ -367,7 +367,7 @@ Expected output shape:
   --session-id demo-session
 ```
 
-This planned command opens the interactive path; when the terminal supports it, the Ink UI can render the conversation history, pending job state, and trace IDs in-place.
+This command opens the interactive path; when the terminal supports it, the Ink UI can render the conversation history, pending job state, and trace IDs in-place.
 
 ### Step 4 — Submit and poll an async job
 
@@ -387,10 +387,8 @@ This planned command opens the interactive path; when the terminal supports it, 
 2brain approvals get --profile local-dev --approval-id <approval-id>
 2brain approvals approve --profile local-dev --approval-id <approval-id> --reviewer-id alice@acme.com
 # or
-2brain approvals reject --profile local-dev --approval-id <approval-id> --reason "Missing legal sign-off"
+2brain approvals reject --profile local-dev --approval-id <approval-id> --reviewer-id alice@acme.com --reason "Missing legal sign-off"
 ```
-
-> The approval commands depend on the approval HTTP endpoints documented in `contracts/agent-api.yaml`; the current backend route stub must be completed before these commands can be fully implemented.
 - Log verbosity set to `DEBUG` via `LOG_LEVEL=debug` in `.env`.
 
 ```bash

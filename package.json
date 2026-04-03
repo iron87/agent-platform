@@ -6,7 +6,10 @@
   ],
   "scripts": {
     "cli:build": "npm --workspace @2brain/tenant-cli run build",
+    "cli:clean": "npm --workspace @2brain/tenant-cli run clean",
+    "cli:typecheck": "npm --workspace @2brain/tenant-cli run typecheck",
     "cli:test": "npm --workspace @2brain/tenant-cli run test",
-    "cli:dev": "npm --workspace @2brain/tenant-cli run dev --"
+    "cli:dev": "npm --workspace @2brain/tenant-cli run dev --",
+    "cli:pack": "npm --workspace @2brain/tenant-cli pack"
   }
 }

@@ -375,11 +375,14 @@ Profiles are stored at `~/.config/2brain/config.json`.
 2brain approvals get --approval-id <uuid>
 
 # Approve
-2brain approvals decide --approval-id <uuid> --reviewer-id ops@example.com --approve
+2brain approvals approve --approval-id <uuid> --reviewer-id ops@example.com
 
 # Reject with reason
-2brain approvals decide --approval-id <uuid> --reviewer-id ops@example.com \
+2brain approvals reject --approval-id <uuid> --reviewer-id ops@example.com \
   --reason "tool call out of scope"
+
+# Legacy alias kept for compatibility
+2brain approvals decide --approval-id <uuid> --reviewer-id ops@example.com --approve
 ```
 
 ### Global flags (all commands)
@@ -404,6 +407,11 @@ Profiles are stored at `~/.config/2brain/config.json`.
 - Policy redaction-only flow: [examples/us8_policy_redaction_only_example.py](examples/us8_policy_redaction_only_example.py)
 - Policy injection-block flow: [examples/us8_policy_injection_block_example.py](examples/us8_policy_injection_block_example.py)
 - Policy hot-reload flow: [examples/us8_policy_hot_reload_example.py](examples/us8_policy_hot_reload_example.py)
+- Approval API flow: [examples/us9_approval_flow_example.py](examples/us9_approval_flow_example.py)
+- CLI end-to-end flow: [examples/us10_cli_end_to_end.sh](examples/us10_cli_end_to_end.sh)
+- CLI sync flow: [examples/us10_cli_run_example.sh](examples/us10_cli_run_example.sh)
+- CLI async jobs flow: [examples/us10_cli_jobs_example.sh](examples/us10_cli_jobs_example.sh)
+- CLI approvals flow: [examples/us10_cli_approvals_example.sh](examples/us10_cli_approvals_example.sh)
 - Tool flows:
   - [examples/us4_web_search_example.py](examples/us4_web_search_example.py)
   - [examples/us4_code_exec_example.py](examples/us4_code_exec_example.py)
@@ -443,8 +451,8 @@ On success, `GET /api/v1/jobs/{job_id}` returns the final `output` and `trace_id
 | Phase 8 | US6 Provider routing/fallback hardening | ✅ |
 | Phase 9 | US7 Trace review/replay | ✅ |
 | Phase 10 | US8 Policy enforcement hardening | ✅ |
-| Phase 11 | US9 HITL approvals | ⏳ |
-| Phase 12 | US10 Tenant CLI | ⏳ |
+| Phase 11 | US9 HITL approvals | ✅ |
+| Phase 12 | US10 Tenant CLI | ✅ |
 | Phase 13 | Polish and cross-cutting tests/docs | ⏳ |
 
 ## Developer Section
