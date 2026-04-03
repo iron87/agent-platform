@@ -84,7 +84,7 @@ async def create_agent(
 		) from exc
 	except ValueError as exc:
 		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
 			detail=str(exc),
 		) from exc
 	finally:
@@ -166,7 +166,7 @@ async def run_agent(
 				detail=str(exc),
 			) from exc
 		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
 			detail=str(exc),
 		) from exc
 	except Exception as exc:
@@ -235,7 +235,7 @@ async def replay_trace(
 				detail=str(exc),
 			) from exc
 		raise HTTPException(
-			status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+			status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
 			detail=str(exc),
 		) from exc
 	except Exception as exc:
