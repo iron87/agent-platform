@@ -7,11 +7,11 @@
 
 **Purpose**: Initialize the web-console package and baseline toolchain.
 
-- [ ] T001 Create package scaffold and npm scripts in `packages/web-console/package.json`
-- [ ] T002 [P] Configure TypeScript and Vite for React app in `packages/web-console/tsconfig.json` and `packages/web-console/vite.config.ts`
-- [ ] T003 [P] Configure Tailwind CSS and PostCSS in `packages/web-console/tailwind.config.ts` and `packages/web-console/postcss.config.js`
-- [ ] T004 [P] Initialize shadcn/ui settings and base design tokens in `packages/web-console/components.json` and `packages/web-console/src/styles/globals.css`
-- [ ] T005 Build initial app bootstrap and root mount in `packages/web-console/src/main.tsx` and `packages/web-console/src/app/App.tsx`
+- [X] T001 Create package scaffold and npm scripts in `packages/web-console/package.json`
+- [X] T002 [P] Configure TypeScript and Vite for React app in `packages/web-console/tsconfig.json` and `packages/web-console/vite.config.ts`
+- [X] T003 [P] Configure Tailwind CSS and PostCSS in `packages/web-console/tailwind.config.ts` and `packages/web-console/postcss.config.js`
+- [X] T004 [P] Initialize shadcn/ui settings and base design tokens in `packages/web-console/components.json` and `packages/web-console/src/styles/globals.css`
+- [X] T005 Build initial app bootstrap and root mount in `packages/web-console/src/main.tsx` and `packages/web-console/src/app/App.tsx`
 
 ---
 
@@ -21,14 +21,14 @@
 
 **⚠️ CRITICAL**: No user story implementation starts before this phase completes.
 
-- [ ] T006 Define shared API and domain types in `packages/web-console/src/lib/types.ts`
-- [ ] T007 Implement profile storage repository with migration/backup behavior in `packages/web-console/src/lib/profile-store.ts`
-- [ ] T008 [P] Implement hybrid API client (proxy/direct modes) in `packages/web-console/src/lib/api-client.ts`
-- [ ] T009 [P] Implement normalized error mapper and trace-id extraction in `packages/web-console/src/lib/error-normalizer.ts`
-- [ ] T010 [P] Create reusable async request state hook in `packages/web-console/src/hooks/useRequestState.ts`
-- [ ] T011 [P] Create shared JSON response viewer component in `packages/web-console/src/components/ui/json-viewer.tsx`
-- [ ] T012 Build global app state provider for active profile and operation history in `packages/web-console/src/app/AppStateProvider.tsx`
-- [ ] T013 Implement shell layout with module navigation and persistent result pane in `packages/web-console/src/app/AppLayout.tsx`
+- [X] T006 Define shared API and domain types in `packages/web-console/src/lib/types.ts`
+- [X] T007 Implement profile storage repository with migration/backup behavior in `packages/web-console/src/lib/profile-store.ts`
+- [X] T008 [P] Implement hybrid API client (proxy/direct modes) in `packages/web-console/src/lib/api-client.ts`
+- [X] T009 [P] Implement normalized error mapper and trace-id extraction in `packages/web-console/src/lib/error-normalizer.ts`
+- [X] T010 [P] Create reusable async request state hook in `packages/web-console/src/hooks/useRequestState.ts`
+- [X] T011 [P] Create shared JSON response viewer component in `packages/web-console/src/components/ui/json-viewer.tsx`
+- [X] T012 Build global app state provider for active profile and operation history in `packages/web-console/src/app/AppStateProvider.tsx`
+- [X] T013 Implement shell layout with module navigation and persistent result pane in `packages/web-console/src/app/AppLayout.tsx`
 
 **Checkpoint**: Foundation complete, user stories can now be implemented.
 
@@ -42,13 +42,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [P] [US1] Define ConsoleProfile form schema and validators in `packages/web-console/src/components/profile/profile-validation.ts`
-- [ ] T015 [US1] Implement profile CRUD panel (create/edit/delete/select) in `packages/web-console/src/components/profile/ProfilePanel.tsx`
-- [ ] T016 [US1] Implement masked API key input with explicit reveal behavior in `packages/web-console/src/components/profile/ApiKeyField.tsx`
-- [ ] T017 [US1] Implement active-profile summary and auth-posture warning banner in `packages/web-console/src/components/profile/ActiveProfileBanner.tsx`
-- [ ] T018 [US1] Wire profile state actions to local storage repository in `packages/web-console/src/app/AppStateProvider.tsx`
-- [ ] T019 [US1] Implement health check action and dependency status rendering in `packages/web-console/src/components/health/HealthPanel.tsx`
-- [ ] T020 [US1] Preserve last successful operation result on subsequent failure in `packages/web-console/src/app/operation-history.ts`
+- [X] T014 [P] [US1] Define ConsoleProfile form schema and validators in `packages/web-console/src/components/profile/profile-validation.ts`
+- [X] T015 [US1] Implement profile CRUD panel (create/edit/delete/select) in `packages/web-console/src/components/profile/ProfilePanel.tsx`
+- [X] T016 [US1] Implement masked API key input with explicit reveal behavior in `packages/web-console/src/components/profile/ApiKeyField.tsx`
+- [X] T017 [US1] Implement active-profile summary and auth-posture warning banner in `packages/web-console/src/components/profile/ActiveProfileBanner.tsx`
+- [X] T018 [US1] Wire profile state actions to local storage repository in `packages/web-console/src/app/AppStateProvider.tsx`
+- [X] T019 [US1] Implement health check action and dependency status rendering in `packages/web-console/src/components/health/HealthPanel.tsx`
+- [X] T020 [US1] Preserve last successful operation result on subsequent failure in `packages/web-console/src/app/operation-history.ts`
 
 **Checkpoint**: US1 delivers a working MVP for connection setup and verification.
 

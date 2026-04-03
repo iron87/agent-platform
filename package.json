@@ -10,6 +10,10 @@
     "cli:typecheck": "npm --workspace @2brain/tenant-cli run typecheck",
     "cli:test": "npm --workspace @2brain/tenant-cli run test",
     "cli:dev": "npm --workspace @2brain/tenant-cli run dev --",
-    "cli:pack": "npm --workspace @2brain/tenant-cli pack"
+    "cli:pack": "npm --workspace @2brain/tenant-cli pack",
+    "web:build": "npm --workspace @2brain/web-console run build",
+    "web:dev": "npm --workspace @2brain/web-console run dev",
+    "web:typecheck": "npm --workspace @2brain/web-console run typecheck",
+    "web:test": "npm --workspace @2brain/web-console run test"
   }
 }

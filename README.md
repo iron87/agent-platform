@@ -35,6 +35,21 @@ Light mode (Mac-friendly):
 bash infra/bootstrap-light.sh
 ```
 
+## Web Console (MVP)
+
+Run from repository root:
+
+```bash
+npm install
+npm run web:dev
+```
+
+Open: `http://localhost:5174`
+
+More details:
+- `packages/web-console/README.md`
+- `specs/002-web-console/quickstart.md`
+
 ## Capabilities
 
 ### Platform & Runtime
