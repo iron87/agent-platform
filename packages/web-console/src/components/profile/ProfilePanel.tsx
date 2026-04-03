@@ -11,7 +11,7 @@ interface ProfilePanelProps {
   onSelectProfile: (profileId: string) => void;
 }
 
-function createDraft(mode: ProfileMode = "proxy"): ProfileFormValue {
+function createDraft(mode: ProfileMode = "direct"): ProfileFormValue {
   return {
     id: crypto.randomUUID(),
     name: "",
@@ -35,8 +35,8 @@ export function ProfilePanel({
   const activeId = useMemo(() => activeProfileId ?? profiles[0]?.id ?? null, [activeProfileId, profiles]);
 
   return (
-    <section className="rounded-lg border bg-card p-4 shadow-sm">
-      <h2 className="mb-3 text-base font-semibold">Profiles</h2>
+    <section className="panel">
+      <h2 className="panel-title mb-3">Profiles</h2>
 
       <form
         className="grid gap-2"
@@ -52,29 +52,29 @@ export function ProfilePanel({
           setDraft(createDraft(draft.mode));
         }}
       >
-        <label className="flex flex-col gap-1 text-sm text-slate-700">
+        <label className="flex flex-col gap-1 text-sm text-teal-900/85">
           Name
           <input
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="input-modern"
             value={draft.name}
             onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
             placeholder="Production"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-slate-700">
+        <label className="flex flex-col gap-1 text-sm text-teal-900/85">
           Base URL
           <input
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="input-modern"
             value={draft.baseUrl}
             onChange={(event) => setDraft((prev) => ({ ...prev, baseUrl: event.target.value }))}
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm text-slate-700">
+        <label className="flex flex-col gap-1 text-sm text-teal-900/85">
           Mode
           <select
-            className="rounded-md border border-slate-300 px-3 py-2"
+            className="input-modern"
             value={draft.mode}
             onChange={(event) => setDraft((prev) => ({ ...prev, mode: event.target.value as ProfileMode }))}
           >
@@ -85,34 +85,34 @@ export function ProfilePanel({
 
         <ApiKeyField value={draft.apiKey} onChange={(apiKey) => setDraft((prev) => ({ ...prev, apiKey }))} />
 
-        {error ? <div className="text-sm text-red-700">{error}</div> : null}
+        {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div> : null}
 
-        <button className="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white" type="submit">
+        <button className="btn-primary" type="submit">
           Save profile
         </button>
       </form>
 
       <ul className="mt-4 space-y-2">
-        {profiles.length === 0 ? <li className="text-sm text-slate-500">No profiles saved yet.</li> : null}
+        {profiles.length === 0 ? <li className="text-sm text-teal-800/70">No profiles saved yet.</li> : null}
         {profiles.map((profile) => {
           const selected = profile.id === activeId;
           return (
-            <li key={profile.id} className="rounded-md border border-slate-200 bg-white p-3 text-sm">
+            <li key={profile.id} className="rounded-xl border border-teal-100 bg-white p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium">{profile.name}</div>
-                  <div className="text-xs text-slate-500">{profile.baseUrl}</div>
+                  <div className="font-medium text-teal-950">{profile.name}</div>
+                  <div className="text-xs text-teal-700/70">{profile.baseUrl}</div>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    className="rounded border border-slate-300 px-2 py-1"
+                    className={selected ? "btn-secondary bg-teal-50" : "btn-secondary"}
                     type="button"
                     onClick={() => onSelectProfile(profile.id)}
                   >
                     {selected ? "Active" : "Use"}
                   </button>
                   <button
-                    className="rounded border border-red-300 px-2 py-1 text-red-700"
+                    className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50"
                     type="button"
                     onClick={() => onDeleteProfile(profile.id)}
                   >

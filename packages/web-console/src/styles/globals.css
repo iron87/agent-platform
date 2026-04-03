@@ -1,18 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: 210 20% 98%;
-  --foreground: 222 47% 11%;
+  --background: 210 24% 97%;
+  --foreground: 222 42% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  --border: 214 32% 91%;
-  --primary: 199 89% 48%;
-  --primary-foreground: 210 40% 98%;
-  --radius: 0.65rem;
+  --card-foreground: 222 42% 13%;
+  --muted: 214 28% 94%;
+  --muted-foreground: 215 18% 36%;
+  --border: 214 25% 86%;
+  --primary: 213 77% 38%;
+  --primary-foreground: 0 0% 100%;
+  --radius: 0.7rem;
 }
 
 * {
@@ -22,5 +24,47 @@
 body {
   @apply bg-background text-foreground antialiased;
   margin: 0;
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+  background: linear-gradient(180deg, #f8fafc 0%, #f2f5f9 100%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Manrope", "IBM Plex Sans", sans-serif;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-14px_rgba(15,23,42,0.28)];
+  }
+
+  .panel-title {
+    @apply text-base font-semibold tracking-tight text-slate-900;
+  }
+
+  .input-modern {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100;
+  }
+
+  .btn-primary {
+    @apply rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50;
+  }
+
+  .pill-nav {
+    @apply rounded-lg border px-3 py-2 text-sm font-medium capitalize transition;
+  }
+
+  .pill-nav-active {
+    @apply border-blue-600 bg-blue-50 text-blue-800;
+  }
+
+  .pill-nav-idle {
+    @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
 }

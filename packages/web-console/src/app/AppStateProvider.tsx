@@ -10,6 +10,7 @@ interface AppStateContextValue {
   profileState: ProfileState;
   activeProfile: ConsoleProfile | null;
   operations: OperationResult[];
+  recordOperation: (name: string, success: boolean, payload?: unknown, error?: ApiErrorView) => void;
   saveProfile: (profile: SaveProfileInput) => void;
   removeProfile: (profileId: string) => void;
   selectProfile: (profileId: string) => void;
@@ -36,6 +37,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       profileState,
       activeProfile,
       operations,
+      recordOperation(name, success, payload, error) {
+        const result = createOperationResult({
+          name,
+          success,
+          payload,
+          error,
+        });
+        setOperations((prev) => appendOperationResult(prev, result));
+      },
       saveProfile(profile) {
         setProfileState((prev) => {
           const next = upsertProfile(prev, profile);

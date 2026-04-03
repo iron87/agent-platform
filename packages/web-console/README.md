@@ -26,6 +26,10 @@ npm run web:dev
 Open:
 - http://localhost:5174
 
+Dev proxy behavior:
+- In `proxy` mode, frontend calls `/api/*` and Vite forwards to `http://localhost:8000/api/v1/*`.
+- In `direct` mode, frontend calls your profile base URL and appends `/api/v1` automatically.
+
 ## Build
 From repository root:
 
@@ -43,7 +47,7 @@ npm run web:typecheck
 ## How to use (MVP)
 1. Create a profile in left panel:
    - name
-   - base URL (for local backend typically `http://localhost:8000`)
+  - base URL (for local backend typically `http://localhost:8000`; app appends `/api/v1` automatically in direct mode)
    - mode: `direct` for local/dev or `proxy` for backend-routed mode
    - API key (masked by default, reveal with explicit action)
 2. Select the profile as active.
@@ -53,6 +57,7 @@ npm run web:typecheck
 ## Notes on auth/security model
 - v1 follows network-scoped operator access (no per-user sign-in UI yet).
 - In direct mode, browser sends `Authorization: Bearer <apiKey>` to selected base URL.
+- In direct mode, browser sends both `X-API-Key` and `Authorization` headers to the API.
 - In proxy mode, frontend targets `/api/*` and expects backend-side credential handling.
 
 ## Troubleshooting

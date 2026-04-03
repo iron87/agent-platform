@@ -12,18 +12,18 @@ export function ApiKeyField({ value, onChange }: ApiKeyFieldProps) {
   const buttonLabel = useMemo(() => (revealed ? "Hide" : "Reveal"), [revealed]);
 
   return (
-    <label className="flex flex-col gap-1 text-sm text-slate-700">
+    <label className="flex flex-col gap-1 text-sm text-teal-900/85">
       API key
       <div className="flex gap-2">
         <input
-          className="w-full rounded-md border border-slate-300 px-3 py-2"
+          className="input-modern"
           type={inputType}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="sk-..."
         />
         <button
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+          className="btn-secondary"
           type="button"
           onClick={() => setRevealed((prev) => !prev)}
         >

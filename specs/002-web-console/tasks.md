@@ -62,15 +62,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [US2] Implement agents list/create API service wrappers in `packages/web-console/src/lib/services/agents-service.ts`
-- [ ] T022 [US2] Implement Agents panel with list/create forms in `packages/web-console/src/components/agents/AgentsPanel.tsx`
-- [ ] T023 [P] [US2] Implement run execution API service in `packages/web-console/src/lib/services/run-service.ts`
-- [ ] T024 [US2] Implement Run panel with structured response rendering in `packages/web-console/src/components/run/RunPanel.tsx`
-- [ ] T025 [P] [US2] Implement replay API service in `packages/web-console/src/lib/services/replay-service.ts`
-- [ ] T026 [US2] Implement Replay panel with trace-id driven rerun flow in `packages/web-console/src/components/run/ReplayPanel.tsx`
-- [ ] T027 [P] [US2] Implement session message API service in `packages/web-console/src/lib/services/session-service.ts`
-- [ ] T028 [US2] Implement Session chat panel with chronological transcript rendering in `packages/web-console/src/components/session/SessionPanel.tsx`
-- [ ] T029 [US2] Add operation-level loading/error states and retry actions for agents/run/replay/session in `packages/web-console/src/components/shared/OperationState.tsx`
+- [X] T021 [P] [US2] Implement agents list/create API service wrappers in `packages/web-console/src/lib/services/agents-service.ts`
+- [X] T022 [US2] Implement Agents panel with list/create forms in `packages/web-console/src/components/agents/AgentsPanel.tsx`
+- [X] T023 [P] [US2] Implement run execution API service in `packages/web-console/src/lib/services/run-service.ts`
+- [X] T024 [US2] Implement Run panel with structured response rendering in `packages/web-console/src/components/run/RunPanel.tsx`
+- [X] T025 [P] [US2] Implement replay API service in `packages/web-console/src/lib/services/replay-service.ts`
+- [X] T026 [US2] Implement Replay panel with trace-id driven rerun flow in `packages/web-console/src/components/run/ReplayPanel.tsx`
+- [X] T027 [P] [US2] Implement session message API service in `packages/web-console/src/lib/services/session-service.ts`
+- [X] T028 [US2] Implement Session chat panel with chronological transcript rendering in `packages/web-console/src/components/session/SessionPanel.tsx`
+- [X] T029 [US2] Add operation-level loading/error states and retry actions for agents/run/replay/session in `packages/web-console/src/components/shared/OperationState.tsx`
+- [X] T029a [US2] Add agent-centric conversations UI (agents list + conversations list + persistent chat threads) in `packages/web-console/src/components/session/SessionPanel.tsx` and `packages/web-console/src/lib/conversation-store.ts`
 
 **Checkpoint**: US2 enables complete synchronous operator workflows in the web console.
 
@@ -84,13 +85,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [P] [US3] Implement jobs submit/status API service wrappers in `packages/web-console/src/lib/services/jobs-service.ts`
-- [ ] T031 [P] [US3] Implement polling engine with timeout/retry/backoff policy in `packages/web-console/src/lib/polling/job-poller.ts`
-- [ ] T032 [US3] Implement Jobs panel with submit/status/watch controls in `packages/web-console/src/components/jobs/JobsPanel.tsx`
-- [ ] T033 [P] [US3] Implement approvals API service wrappers in `packages/web-console/src/lib/services/approvals-service.ts`
-- [ ] T034 [US3] Implement Approval details panel for pending approvals in `packages/web-console/src/components/approvals/ApprovalDetailsPanel.tsx`
-- [ ] T035 [US3] Implement approval decision form (approve/reject, reviewer, reason) in `packages/web-console/src/components/approvals/ApprovalDecisionForm.tsx`
-- [ ] T036 [US3] Link interrupted job snapshots to approval fetch flow in `packages/web-console/src/components/jobs/JobApprovalLink.tsx`
+- [X] T030 [P] [US3] Implement jobs submit/status API service wrappers in `packages/web-console/src/lib/services/jobs-service.ts`
+- [X] T031 [P] [US3] Implement polling engine with timeout/retry/backoff policy in `packages/web-console/src/lib/polling/job-poller.ts`
+- [X] T032 [US3] Implement Jobs panel with submit/status/watch controls in `packages/web-console/src/components/jobs/JobsPanel.tsx`
+- [X] T033 [P] [US3] Implement approvals API service wrappers in `packages/web-console/src/lib/services/approvals-service.ts`
+- [X] T034 [US3] Implement Approval details panel for pending approvals in `packages/web-console/src/components/approvals/ApprovalDetailsPanel.tsx`
+- [X] T035 [US3] Implement approval decision form (approve/reject, reviewer, reason) in `packages/web-console/src/components/approvals/ApprovalDecisionForm.tsx`
+- [X] T036 [US3] Link interrupted job snapshots to approval fetch flow in `packages/web-console/src/components/jobs/JobApprovalLink.tsx`
 
 **Checkpoint**: US3 completes async operations and HITL decision handling in UI.
 

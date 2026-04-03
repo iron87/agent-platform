@@ -12,11 +12,11 @@ export function HealthPanel({ onRun, latestPayload, latestError }: HealthPanelPr
   const [loading, setLoading] = useState(false);
 
   return (
-    <section className="rounded-lg border bg-card p-4 shadow-sm">
+    <section className="panel">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold">Health</h2>
+        <h2 className="panel-title">Health</h2>
         <button
-          className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="btn-primary"
           type="button"
           disabled={loading}
           onClick={async () => {
@@ -33,7 +33,7 @@ export function HealthPanel({ onRun, latestPayload, latestError }: HealthPanelPr
       </div>
 
       {latestError ? (
-        <div className="mb-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+        <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
           {latestError.message}
           {latestError.traceId ? <div className="mt-1 text-xs">Trace: {latestError.traceId}</div> : null}
         </div>
@@ -41,11 +41,11 @@ export function HealthPanel({ onRun, latestPayload, latestError }: HealthPanelPr
 
       {latestPayload ? (
         <div className="space-y-2">
-          <div className="text-sm text-slate-700">Latest response</div>
+          <div className="text-sm text-teal-800">Latest response</div>
           <JsonViewer data={latestPayload} />
         </div>
       ) : (
-        <div className="text-sm text-slate-500">Run a health check to inspect dependencies.</div>
+        <div className="text-sm text-teal-800/70">Run a health check to inspect dependencies.</div>
       )}
     </section>
   );

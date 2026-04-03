@@ -10,12 +10,21 @@ function getBaseUrl(profile: ConsoleProfile): string {
   if (profile.mode === "proxy") {
     return "/api";
   }
-  return profile.baseUrl.replace(/\/$/, "");
+
+  const normalized = profile.baseUrl.replace(/\/$/, "");
+  if (normalized.endsWith("/api/v1")) {
+    return normalized;
+  }
+  return `${normalized}/api/v1`;
 }
 
 function buildHeaders(profile: ConsoleProfile, headers?: HeadersInit): Headers {
   const merged = new Headers(headers);
   merged.set("Content-Type", "application/json");
+
+  if (profile.apiKey?.trim()) {
+    merged.set("X-API-Key", profile.apiKey);
+  }
 
   if (profile.mode === "direct") {
     merged.set("Authorization", `Bearer ${profile.apiKey}`);
