@@ -1,10 +1,12 @@
 # 2brain-platform Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-01
+Auto-generated from all feature plans. Last updated: 2026-04-03
 
 ## Active Technologies
 - Python 3.12+ for backend and automation-friendly CLI commands; TypeScript + Node.js 22 for the optional React Ink TUI + FastAPI, Pydantic, httpx, structlog, existing SQLAlchemy/Redis/RQ stack; Typer + Rich for Python CLI ergonomics; React + Ink for interactive terminal flows (001-ai-agent-platform)
 - PostgreSQL, Redis, Qdrant, Langfuse; CLI itself remains stateless except for a local profile/config file (001-ai-agent-platform)
+- TypeScript 5.x, React 18.x + React, Vite, Tailwind CSS, shadcn/ui, fetch API (002-web-console)
+- Browser local storage for profile persistence; backend remains source of truth for domain data (002-web-console)
 
 - (001-ai-agent-platform)
 
@@ -15,7 +17,7 @@ src/
 tests/
 # 2brain-platform — GitHub Copilot Instructions
 
-Auto-generated from feature plan `001-ai-agent-platform`. Last updated: 2026-04-01.
+Auto-generated from feature plan `001-ai-agent-platform`. Last updated: 2026-04-03.
 
 ## Active Feature
 
@@ -147,4 +149,5 @@ curl http://localhost:8000/health
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
+- 002-web-console: Added TypeScript 5.x, React 18.x + React, Vite, Tailwind CSS, shadcn/ui, fetch API
 - 001-ai-agent-platform: Added Python 3.12+ for backend and automation-friendly CLI commands; TypeScript + Node.js 22 for the optional React Ink TUI + FastAPI, Pydantic, httpx, structlog, existing SQLAlchemy/Redis/RQ stack; Typer + Rich for Python CLI ergonomics; React + Ink for interactive terminal flows
