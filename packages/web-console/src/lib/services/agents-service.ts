@@ -18,6 +18,8 @@ export async function listAgents(profile: ConsoleProfile): Promise<AgentSummary[
     modelAlias: item.model_alias,
     version: item.version,
     semanticMemoryEnabled: item.semantic_memory_enabled,
+    tools: item.tools ?? [],
+    hitlTools: item.hitl_tools ?? [],
   }));
 }
 
@@ -28,7 +30,11 @@ export async function createAgent(profile: ConsoleProfile, input: AgentCreateInp
     method: "POST",
     body: JSON.stringify({
       name: input.name,
-      prompt_file: input.promptFile.trim(),
+      prompt_file: input.promptFile?.trim() || undefined,
+      prompt_text: input.promptText?.trim() || undefined,
+      graph_type: input.graphType || "conversational",
+      tools: input.tools ?? [],
+      hitl_tools: input.hitlTools ?? [],
       model_alias: input.modelAlias || "default",
       max_execution_seconds: input.maxExecutionSeconds ?? 60,
       semantic_memory_enabled: input.semanticMemoryEnabled ?? false,
@@ -46,5 +52,7 @@ export async function createAgent(profile: ConsoleProfile, input: AgentCreateInp
     modelAlias: created?.model_alias,
     version: created?.version,
     semanticMemoryEnabled: created?.semantic_memory_enabled,
+    tools: created?.tools ?? [],
+    hitlTools: created?.hitl_tools ?? [],
   };
 }

@@ -59,11 +59,17 @@ export interface AgentSummary {
   modelAlias?: "default" | "fast" | "embedding";
   version?: number;
   semanticMemoryEnabled?: boolean;
+  tools?: string[];
+  hitlTools?: string[];
 }
 
 export interface AgentCreateInput {
   name: string;
-  promptFile: string;
+  promptFile?: string;
+  promptText?: string;
+  graphType?: "conversational" | "tool_agent" | "batch_agent";
+  tools?: string[];
+  hitlTools?: string[];
   modelAlias?: "default" | "fast" | "embedding";
   maxExecutionSeconds?: number;
   semanticMemoryEnabled?: boolean;

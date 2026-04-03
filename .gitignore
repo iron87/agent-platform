@@ -35,3 +35,6 @@ node_modules/
 
 #blog
 docs/blog/
+
+#generated prompr
+generated_prompts/

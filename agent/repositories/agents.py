@@ -52,11 +52,14 @@ class AgentsRepository:
             validated.append(current)
         return validated
 
-    async def create_conversational(
+    async def create_agent(
         self,
         *,
         name: str,
         prompt_file: str,
+        graph_type: str = "conversational",
+        tools: list[str] | None = None,
+        hitl_tools: list[str] | None = None,
         model_alias: str = "default",
         max_execution_seconds: int = 60,
         semantic_memory_enabled: bool = False,
@@ -73,9 +76,9 @@ class AgentsRepository:
                 "name": name,
                 "model_alias": normalized_alias,
                 "prompt_file": prompt_file,
-                "graph_type": "conversational",
-                "tools": [],
-                "hitl_tools": [],
+                "graph_type": graph_type,
+                "tools": list(tools or []),
+                "hitl_tools": list(hitl_tools or []),
                 "max_execution_seconds": max_execution_seconds,
                 "semantic_memory_enabled": semantic_memory_enabled,
                 "version": 1,

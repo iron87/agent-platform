@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 from uuid import UUID, uuid4
 
@@ -22,6 +23,25 @@ from api.models.run import ReplayRequest, RunRequest, RunResponse
 router = APIRouter(tags=["agents"])
 
 
+def _slugify(value: str) -> str:
+	return "".join(ch.lower() if ch.isalnum() else "-" for ch in value).strip("-") or "agent"
+
+
+def _resolve_prompt_file(payload: AgentCreateRequest) -> str:
+	if payload.prompt_file:
+		return payload.prompt_file
+
+	if payload.prompt_text:
+		directory = Path("generated_prompts")
+		directory.mkdir(parents=True, exist_ok=True)
+		file_name = f"{_slugify(payload.name)}-{uuid4().hex[:8]}.md"
+		file_path = directory / file_name
+		file_path.write_text(payload.prompt_text, encoding="utf-8")
+		return str(file_path)
+
+	raise ValueError("Either prompt_file or prompt_text must be provided.")
+
+
 @router.get("/agents", response_model=AgentListResponse, status_code=status.HTTP_200_OK)
 async def list_agents(
 	tenant: Annotated[TenantContext, Depends(get_current_tenant)],
@@ -41,6 +61,8 @@ async def list_agents(
 				model_alias=str(record["model_alias"]),
 				version=int(record.get("version") or 1),
 				semantic_memory_enabled=bool(record.get("semantic_memory_enabled")),
+				tools=list(record.get("tools") or []),
+				hitl_tools=list(record.get("hitl_tools") or []),
 			)
 			for record in records
 		]
@@ -60,9 +82,13 @@ async def create_agent(
 
 	repo = AgentsRepository(session)
 	try:
-		record = await repo.create_conversational(
+		prompt_file = _resolve_prompt_file(payload)
+		record = await repo.create_agent(
 			name=payload.name,
-			prompt_file=payload.prompt_file,
+			prompt_file=prompt_file,
+			graph_type=payload.graph_type,
+			tools=payload.tools,
+			hitl_tools=payload.hitl_tools,
 			model_alias=payload.model_alias,
 			max_execution_seconds=payload.max_execution_seconds,
 			semantic_memory_enabled=payload.semantic_memory_enabled,
@@ -75,6 +101,8 @@ async def create_agent(
 				model_alias=str(record["model_alias"]),
 				version=int(record.get("version") or 1),
 				semantic_memory_enabled=bool(record.get("semantic_memory_enabled")),
+				tools=list(record.get("tools") or []),
+				hitl_tools=list(record.get("hitl_tools") or []),
 			)
 		)
 	except IntegrityError as exc:
