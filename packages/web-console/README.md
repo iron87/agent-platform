@@ -1,15 +1,13 @@
-# Web Console (Phase 1-3)
+# Web Console
 
-Operator UI for profile management and health checks.
-
-## Current status
-Implemented through tasks T001-T020:
+Operator UI for API/CLI parity workflows:
 - profile CRUD + persistence
-- proxy/direct API mode selection
-- health check execution
-- operation history panel
-
-Other modules (agents, run, session, jobs, approvals) are placeholders in current build.
+- health checks
+- agents list/create
+- run + replay
+- session chat with local conversation persistence
+- async jobs polling + approval handling
+- operation history with consistent feedback states and toasts
 
 ## Prerequisites
 - Node.js 20+
@@ -44,21 +42,32 @@ From repository root:
 npm run web:typecheck
 ```
 
-## How to use (MVP)
+## Test
+From repository root:
+
+```bash
+npm run web:test
+```
+
+## How to use
 1. Create a profile in left panel:
    - name
   - base URL (for local backend typically `http://localhost:8000`; app appends `/api/v1` automatically in direct mode)
    - mode: `direct` for local/dev or `proxy` for backend-routed mode
    - API key (masked by default, reveal with explicit action)
 2. Select the profile as active.
-3. Go to Health module and click Run health check.
+3. Use module navigation to operate agents, run/replay, session chat, jobs, and approvals.
 4. Inspect response/error in Operation history on the right.
 
 ## Notes on auth/security model
 - v1 follows network-scoped operator access (no per-user sign-in UI yet).
-- In direct mode, browser sends `Authorization: Bearer <apiKey>` to selected base URL.
 - In direct mode, browser sends both `X-API-Key` and `Authorization` headers to the API.
 - In proxy mode, frontend targets `/api/*` and expects backend-side credential handling.
+
+## Known limitations (v1)
+- no dedicated web-console audit trail storage
+- no per-user auth in UI
+- job updates rely on polling (2s interval, 5m default timeout), not real-time push
 
 ## Troubleshooting
 - Empty/failed health response:

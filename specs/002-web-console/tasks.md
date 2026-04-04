@@ -101,12 +101,12 @@
 
 **Purpose**: Final hardening and documentation across all stories.
 
-- [ ] T037 [P] Add responsive layout and accessibility refinements across panels in `packages/web-console/src/app/AppLayout.tsx`
-- [ ] T038 [P] Add consistent empty/loading/error states and toasts in `packages/web-console/src/components/shared/feedback.tsx`
-- [ ] T039 [P] Add unit tests for profile storage and API client mode selection in `packages/web-console/tests/lib/profile-store.test.ts` and `packages/web-console/tests/lib/api-client.test.ts`
-- [ ] T040 [P] Add component tests for core panel flows in `packages/web-console/tests/components/profile-health.test.tsx` and `packages/web-console/tests/components/workflows.test.tsx`
-- [ ] T041 Update setup, security posture, and limitations docs in `README.md` and `packages/web-console/README.md`
-- [ ] T042 Validate quickstart end-to-end and record final checklist notes in `specs/002-web-console/quickstart.md`
+- [X] T037 [P] Add responsive layout and accessibility refinements across panels in `packages/web-console/src/app/AppLayout.tsx`
+- [X] T038 [P] Add consistent empty/loading/error states and toasts in `packages/web-console/src/components/shared/feedback.tsx`
+- [X] T039 [P] Add unit tests for profile storage and API client mode selection in `packages/web-console/tests/lib/profile-store.test.ts` and `packages/web-console/tests/lib/api-client.test.ts`
+- [X] T040 [P] Add component tests for core panel flows in `packages/web-console/tests/components/profile-health.test.tsx` and `packages/web-console/tests/components/workflows.test.tsx`
+- [X] T041 Update setup, security posture, and limitations docs in `README.md` and `packages/web-console/README.md`
+- [X] T042 Validate quickstart end-to-end and record final checklist notes in `specs/002-web-console/quickstart.md`
 
 ---
 

@@ -35,7 +35,7 @@ Light mode (Mac-friendly):
 bash infra/bootstrap-light.sh
 ```
 
-## Web Console (MVP)
+## Web Console
 
 Run from repository root:
 
@@ -49,6 +49,13 @@ Open: `http://localhost:5174`
 More details:
 - `packages/web-console/README.md`
 - `specs/002-web-console/quickstart.md`
+
+Security posture for v1:
+- network-scoped operator access (no per-user login)
+- `proxy` mode preferred in production (backend handles credentials)
+- `direct` mode available for local/dev with profile API key
+
+Current scope includes profile management, health, agents, run/replay, session chat, jobs polling, and approvals workflows.
 
 ## Capabilities
 

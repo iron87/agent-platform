@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AgentsPanel } from "../components/agents/AgentsPanel";
 import { ApprovalsPanel } from "../components/approvals/ApprovalsPanel";
+import { FeedbackEmpty, useFeedback } from "../components/shared/feedback";
 import { HealthPanel } from "../components/health/HealthPanel";
 import { JobsPanel } from "../components/jobs/JobsPanel";
 import { ActiveProfileBanner } from "../components/profile/ActiveProfileBanner";
@@ -17,6 +18,8 @@ type ModuleKey = (typeof modules)[number];
 
 export function AppLayout() {
   const [activeModule, setActiveModule] = useState<ModuleKey>("health");
+  const { pushToast } = useFeedback();
+  const lastToastOperationRef = useRef<string | null>(null);
   const {
     activeProfile,
     profileState,
@@ -32,6 +35,19 @@ export function AppLayout() {
     () => operations.find((operation) => operation.name === "health") ?? null,
     [operations],
   );
+
+  useEffect(() => {
+    const latest = operations[0];
+    if (!latest || latest.id === lastToastOperationRef.current) {
+      return;
+    }
+
+    lastToastOperationRef.current = latest.id;
+    pushToast(
+      `${latest.name}: ${latest.success ? "completed" : "failed"}`,
+      latest.success ? "success" : "error",
+    );
+  }, [operations, pushToast]);
 
   let mainContent: JSX.Element;
 
@@ -69,6 +85,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen px-4 py-4 md:px-6 md:py-5">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:rounded focus:bg-white focus:px-2 focus:py-1">
+        Skip to main content
+      </a>
       <div className="grid gap-4 xl:grid-cols-[320px_minmax(760px,1fr)_420px]">
         <aside className="space-y-4 xl:sticky xl:top-4 xl:h-fit">
           <ActiveProfileBanner profile={activeProfile} />
@@ -81,7 +100,7 @@ export function AppLayout() {
           />
         </aside>
 
-        <main className="space-y-4">
+        <main id="main-content" className="space-y-4" role="main">
           <header className="panel">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -103,6 +122,7 @@ export function AppLayout() {
                 type="button"
                 className={`pill-nav ${activeModule === module ? "pill-nav-active" : "pill-nav-idle"}`}
                 onClick={() => setActiveModule(module)}
+                aria-current={activeModule === module ? "page" : undefined}
               >
                 {module}
               </button>
@@ -114,7 +134,7 @@ export function AppLayout() {
         <section className="panel xl:sticky xl:top-4 xl:h-[calc(100vh-2rem)] xl:overflow-hidden">
           <h2 className="panel-title mb-3">Operation History</h2>
           {operations.length === 0 ? (
-            <p className="text-sm text-slate-600">No operations yet.</p>
+            <FeedbackEmpty message="No operations yet." />
           ) : (
             <div className="space-y-3 xl:max-h-[calc(100vh-8rem)] xl:overflow-auto pr-1">
               {operations.map((operation) => (

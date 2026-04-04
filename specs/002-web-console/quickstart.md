@@ -8,52 +8,50 @@
 ## 1. Start backend dependencies
 Use existing repository workflow to bring up API services and dependencies.
 
-## 2. Create frontend package skeleton
-From repository root, initialize `packages/web-console` with Vite React TypeScript template.
+## 2. Install frontend dependencies
+From repository root:
 
-## 3. Install UI dependencies
-Install and configure:
-- `tailwindcss`, `postcss`, `autoprefixer`
-- `class-variance-authority`, `clsx`, `tailwind-merge`
-- `lucide-react`
-- `shadcn/ui` initialization with Tailwind config
+```bash
+npm install
+```
 
-## 4. Configure base app shell
-- Add layout with left profile panel and right operation panels.
-- Wire route/state structure for modules:
-- Health
-- Agents
-- Run/Replay
-- Session Chat
-- Jobs
-- Approvals
+## 3. Run the console
+From repository root:
 
-## 5. Implement API client modes
-- `proxy` mode for production calls through backend endpoint(s)
-- `direct` mode for local/dev using profile API key header
-- Centralize request building and error normalization
+```bash
+npm run web:dev
+```
 
-## 6. Implement profile persistence and masking
-- Store profiles in local storage
-- Mask API keys by default in UI
-- Add explicit reveal interaction and clear warnings
+Open: `http://localhost:5174`
 
-## 7. Implement operation modules
-- Health: GET health endpoint and render status
-- Agents: list/create
-- Run: execute and display structured result
-- Replay: rerun from prior run
-- Session Chat: send message, append transcript
-- Jobs: submit + status polling every 2s, timeout at 5 minutes
-- Approvals: list pending and approve/reject actions
+## 4. Configure profile
+- Create a profile in the left panel
+- Use `direct` mode for local API key testing or `proxy` mode for backend-routed calls
+- Select the created profile as active
 
-## 8. Testing
-- Unit tests for profile store and API client behavior
-- Component tests for each panel happy path + error state
-- One integration-style test for polling timeout behavior
+## 5. Validate core workflows
+- Health: run health check and inspect structured response
+- Agents: list existing agents, create a new agent with prompt and tool selection
+- Run/Replay: execute synchronous run and trace-based replay
+- Session: send multi-turn messages in an agent-scoped conversation
+- Jobs: submit async job and observe polling status updates
+- Approvals: fetch pending approval details and submit approve/reject decision
 
-## 9. Documentation
-Update README with:
-- console package setup/run instructions
-- security model (hybrid mode + network trust assumptions)
-- known limitations (no dedicated audit trail in v1)
+## 6. Validate build and tests
+From repository root:
+
+```bash
+npm run web:test
+npm run web:typecheck
+npm run web:build
+```
+
+## Final Validation Notes
+- Checklist gate: `requirements.md` completed (16/16)
+- Test suite: 15 tests passing (`tests/lib` + `tests/components`)
+- Typecheck: passes (`tsc --noEmit`)
+- Production build: passes (Vite bundle generated)
+- Security posture confirmed in docs:
+	- network-scoped operator access for v1
+	- `proxy` mode for production preference
+	- `direct` mode available for local/dev usage
