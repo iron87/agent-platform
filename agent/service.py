@@ -310,6 +310,7 @@ class AgentService:
             "_agent_definition": agent_def,
             "_tool_registry": tool_registry,
             "_trace_callbacks": None,
+            "_memory_store": self.memory_store,
         }
 
         # Apply input policy (optional, fail-open)
@@ -589,6 +590,7 @@ class AgentService:
             "_agent_definition": agent_def,
             "_tool_registry": tool_registry,
             "_trace_callbacks": None,
+            "_memory_store": self.memory_store,
         }
 
         # Apply input policy before session execution

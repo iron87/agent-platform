@@ -1,4 +1,4 @@
-FROM qdrant/qdrant:v1.9.5
+FROM qdrant/qdrant:v1.13.4
 
 USER root
 RUN apt-get update \

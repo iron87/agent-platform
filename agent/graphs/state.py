@@ -86,5 +86,6 @@ class AgentState(TypedDict):
     _agent_definition: dict[str, Any] | None
     _tool_registry: dict[str, Any] | None
     _trace_callbacks: list[Any] | None
+    _memory_store: Any | None
     _max_tool_steps: int | None
     _max_tool_retries: int | None

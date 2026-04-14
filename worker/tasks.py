@@ -8,6 +8,7 @@ import redis.asyncio as redis
 import structlog
 
 from agent.llm import LiteLLMClient
+from agent.memory import Mem0MemoryStore
 from agent.repositories import AgentsRepository, ApprovalsRepository, JobsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
 from agent.session_store import RedisSessionStore
@@ -53,7 +54,7 @@ async def run_agent_job_async(
             jobs_repo=jobs_repository,
             approvals_repo=ApprovalsRepository(session),
             session_store=session_store,
-            memory_store=None,
+            memory_store=Mem0MemoryStore(runtime_settings),
             llm_client=LiteLLMClient(
                 base_url=_normalize_litellm_base_url(runtime_settings.LITELLM_BASE_URL),
                 api_key=runtime_settings.LITELLM_MASTER_KEY,

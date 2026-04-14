@@ -201,7 +201,7 @@ class Mem0MemoryStore:
                     "model": "default",
                     # Internal Mem0 calls should bypass virtual-key auth and use master key.
                     "api_key": self.settings.LITELLM_MASTER_KEY,
-                    "base_url": self.settings.LITELLM_BASE_URL + "/v1",
+                    "openai_base_url": self.settings.LITELLM_BASE_URL + "/v1",
                 },
             },
             "embedder": {
@@ -210,14 +210,15 @@ class Mem0MemoryStore:
                     "model": "embedding",
                     # Internal Mem0 calls should bypass virtual-key auth and use master key.
                     "api_key": self.settings.LITELLM_MASTER_KEY,
-                    "base_url": self.settings.LITELLM_BASE_URL + "/v1",
-                    "embedding_dims": 1536,
+                    "openai_base_url": self.settings.LITELLM_BASE_URL + "/v1",
+                    "embedding_dims": self.settings.LOCAL_EMBEDDING_DIMS,
                 },
             },
             "vector_store": {
                 "provider": "qdrant",
                 "config": {
                     "collection_name": f"{tenant_id}_memory",
+                    "embedding_model_dims": self.settings.LOCAL_EMBEDDING_DIMS,
                     "host": self.settings.QDRANT_HOST,
                     "port": self.settings.QDRANT_PORT,
                     "api_key": self.settings.QDRANT_API_KEY or None,
@@ -250,7 +251,7 @@ class Mem0MemoryStore:
             )
 
         config = self._get_mem0_config(tenant_id)
-        mem0 = Memory.from_config(config, user_id=tenant_id)
+        mem0 = Memory.from_config(config)
         self._mem0_instances[tenant_id] = mem0
 
         logger.info(
@@ -283,12 +284,25 @@ class Mem0MemoryStore:
 
         mem0 = self._get_or_create_mem0(scope.tenant_id)
 
-        # Mem0.add() returns the message ID
-        msg_id = mem0.add(
+        # Use infer=False to persist the supplied content directly as memory.
+        # Mem0 may return either a dict envelope ({"results": [...]}) or
+        # a direct identifier depending on version/provider behavior.
+        result = mem0.add(
             messages=text,
             metadata=metadata or {},
             user_id=scope.user_id or scope.tenant_id,
+            agent_id=scope.agent_id,
+            run_id=scope.run_id,
+            infer=False,
         )
+
+        msg_id = ""
+        if isinstance(result, dict):
+            first = (result.get("results") or [{}])[0]
+            if isinstance(first, dict):
+                msg_id = str(first.get("id") or "")
+        elif isinstance(result, str):
+            msg_id = result
 
         logger.debug(
             "memory_fact_upserted",
@@ -321,21 +335,33 @@ class Mem0MemoryStore:
 
         mem0 = self._get_or_create_mem0(scope.tenant_id)
 
-        # Mem0.search() returns list of dicts with 'id', 'text', 'score', etc.
+        # Mem0.search() can return either a dict envelope ({"results": [...]})
+        # or a direct list, depending on version/provider.
         results = mem0.search(
             query=query,
             user_id=scope.user_id or scope.tenant_id,
+            agent_id=scope.agent_id,
+            run_id=scope.run_id,
             limit=limit,
         )
 
+        normalized_results: list[Any]
+        if isinstance(results, dict):
+            normalized_results = list(results.get("results") or [])
+        elif isinstance(results, list):
+            normalized_results = results
+        else:
+            normalized_results = []
+
         records = [
             MemoryRecord(
-                id=r.get("id", ""),
-                text=r.get("text", ""),
+                id=str(r.get("id", "")),
+                text=str(r.get("text") or r.get("memory") or ""),
                 score=r.get("score"),
                 metadata=r.get("metadata"),
             )
-            for r in results
+            for r in normalized_results
+            if isinstance(r, dict)
         ]
 
         logger.debug(

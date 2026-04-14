@@ -26,6 +26,7 @@ model_list:
 litellm_settings:
   num_retries: 1
   request_timeout: 180
+  drop_params: true
   fallbacks:
     - default: ["fast"]
 

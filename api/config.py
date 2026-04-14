@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "qdrant"
     QDRANT_PORT: int = Field(default=6333, ge=1, le=65535)
     QDRANT_URL: str
+    QDRANT_API_KEY: str = ""
 
     LITELLM_BASE_URL: str
     LITELLM_API_KEY: str
@@ -60,6 +61,7 @@ class Settings(BaseSettings):
     LOCAL_DEFAULT_MODEL: str
     LOCAL_FAST_MODEL: str
     LOCAL_EMBEDDING_MODEL: str
+    LOCAL_EMBEDDING_DIMS: int = Field(default=768, ge=1)
     LOCAL_EMBEDDING_API_BASE: str
     LOCAL_EMBEDDING_API_KEY: str = "not-required"
 

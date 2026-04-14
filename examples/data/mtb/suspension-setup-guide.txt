@@ -1,0 +1,13 @@
+Suspension setup starts with sag. As a baseline, many riders run about 25-30% sag
+on the rear shock and 15-20% sag on the fork for trail riding.
+
+Rebound controls how quickly suspension returns after compression. If rebound is too fast,
+the bike feels bouncy and unstable. If rebound is too slow, suspension can pack down
+on repeated bumps and lose grip.
+
+Compression damping affects support under braking, pumping, and corner loads.
+A small increase in low-speed compression can add mid-stroke support,
+but too much can make the bike harsh on roots and reduce small-bump sensitivity.
+
+Tuning should be iterative: change one setting at a time, test on the same segment,
+and write short notes after each run.

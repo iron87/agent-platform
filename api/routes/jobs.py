@@ -8,6 +8,7 @@ import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent.llm import LiteLLMClient
+from agent.memory import Mem0MemoryStore
 from agent.repositories import AgentNotFoundError, AgentsRepository, ApprovalsRepository, JobsRepository
 from agent.service import AgentService, ExecutionMode, ExecutionRequest
 from agent.session_store import RedisSessionStore
@@ -38,7 +39,7 @@ def _build_agent_service(session: AsyncSession, settings: Settings) -> AgentServ
         jobs_repo=JobsRepository(session),
         approvals_repo=ApprovalsRepository(session),
         session_store=session_store,
-        memory_store=None,
+        memory_store=Mem0MemoryStore(settings),
         llm_client=LiteLLMClient(
             base_url=_normalize_litellm_base_url(settings.LITELLM_BASE_URL),
             api_key=settings.LITELLM_MASTER_KEY,

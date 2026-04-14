@@ -278,6 +278,57 @@ bash examples/us10_cli_approvals_example.sh
 2brain run --profile local-dev --agent-id <agent-id> --session-id demo-1 --input "What ticket did I mention?"
 
 # US5 async job lifecycle
+
+## US11 - RAG via CLI + Bash
+
+Files:
+- `examples/us11_rag_cli_example.sh`: full RAG flow without Python using `2brain` + bash.
+
+### Run the US11 RAG example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+bash examples/us11_rag_cli_example.sh
+```
+
+What it does:
+- creates a CLI profile
+- creates an agent with `semantic_memory_enabled=true`
+- seeds two facts in one session
+- asks a retrieval question in a different session to validate semantic recall
+- checks Qdrant collection `<tenant_id>_memory` and prints point count
+
+Optional overrides:
+
+```bash
+BASE_URL=http://localhost:8000/api/v1 \
+PROFILE=rag-demo \
+MODEL_ALIAS=default \
+bash examples/us11_rag_cli_example.sh
+```
+
+## US12 - RAG with File Ingestion (CLI + Bash)
+
+Files:
+- `examples/us12_rag_file_ingestion_cli.sh`: ingests all `.txt` files from `examples/data/mtb/`, then runs a RAG query.
+- `examples/data/mtb/*.txt`: sample English MTB knowledge files.
+
+### Run the US12 example
+
+```bash
+export AGENT_API_KEY="$(grep '^AGENT_API_KEY=' .env | cut -d'=' -f2-)"
+bash examples/us12_rag_file_ingestion_cli.sh
+```
+
+Optional overrides:
+
+```bash
+BASE_URL=http://localhost:8000/api/v1 \
+QDRANT_URL=http://localhost:6333 \
+PROFILE=rag-files-demo \
+DATA_DIR=examples/data/mtb \
+bash examples/us12_rag_file_ingestion_cli.sh
+```
 2brain jobs submit --profile local-dev --agent-id <agent-id> --input "Generate weekly report"
 2brain jobs status --profile local-dev --job-id <job-id>
 2brain jobs wait --profile local-dev --job-id <job-id> --timeout 180
